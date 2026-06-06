@@ -1010,7 +1010,7 @@ export default function RetroCalculator() {
 
           <div className={`relative z-10 min-w-0 ${GRID_10}`}>
             <div
-              className="relative min-w-0 overflow-hidden rounded-[1px] py-[24px] pr-3 pl-0 sm:py-[26px] sm:pr-4 sm:pl-0"
+              className="relative min-w-0 overflow-visible rounded-[1px] py-[24px] pr-3 pl-0 sm:py-[26px] sm:pr-4 sm:pl-0"
               style={{
                 gridColumn: "2 / 8",
                 marginLeft: LCD_COLUMN_INSET,
@@ -1028,7 +1028,7 @@ export default function RetroCalculator() {
                 }}
               />
               <p
-                className={`relative z-[1] min-h-[1em] w-full min-w-0 overflow-hidden ${LCD_DISPLAY_CLASS}`}
+                className={`relative z-[1] min-h-[1em] w-full min-w-0 overflow-visible ${LCD_DISPLAY_CLASS}`}
                 style={{
                   color: COLORS.lcdText,
                   ...LCD_FONT,
