@@ -911,11 +911,11 @@ export default function RetroCalculator() {
 
   return (
     <div
-      className="flex min-h-full flex-col items-center p-6 sm:p-10"
+      className="flex min-h-full flex-col items-center p-6 sm:p-10 md:px-10 md:pb-10 md:pt-0"
       style={{ background: "#f4f3ef" }}
     >
       <div
-        className="z-10 w-full max-w-[1020px] bg-[#f4f3ef] pb-4 md:sticky md:top-6 md:z-20 md:pb-6"
+        className="z-10 w-full max-w-[1020px] bg-[#f4f3ef] pb-4 md:sticky md:top-0 md:z-20 md:pb-6 md:pt-10"
       >
         <div
           className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_30px_80px_rgba(0,0,0,0.75)] sm:px-5"
