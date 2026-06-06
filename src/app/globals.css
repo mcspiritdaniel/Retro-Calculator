@@ -1,7 +1,15 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "DSEG7 Classic Mini";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/dseg7-classic-mini-italic.woff2") format("woff2");
+}
+
 :root {
-  --background: #ffffff;
+  --background: #f4f3ef;
   --foreground: #171717;
 }
 
@@ -14,13 +22,109 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #f4f3ef;
+    --foreground: #171717;
   }
 }
 
 body {
-  background: var(--background);
+  background: #f4f3ef;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Retro LCD line: digits with comma ticks in the natural inter-digit gap. */
+.lcd-display-clip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.lcd-display-line {
+  display: inline;
+  white-space: nowrap;
+  letter-spacing: 0.21em;
+  overflow: visible;
+  color: #000;
+  -webkit-text-stroke: 0.042em #000;
+  paint-order: stroke fill;
+}
+
+.lcd-display-clip--scientific-entry {
+  position: relative;
+  min-height: 1em;
+}
+
+.lcd-scientific-exponent-overlay {
+  position: absolute;
+  right: 0;
+  top: 0;
+  white-space: nowrap;
+}
+
+.lcd-digit--blank {
+  visibility: hidden;
+}
+
+.lcd-display-line--signed {
+  position: relative;
+}
+
+/* Minus sits one digit cell left of the mantissa without shifting positive digits. */
+.lcd-sign-overlay {
+  position: absolute;
+  top: 0;
+  right: 100%;
+  white-space: nowrap;
+  letter-spacing: 0.21em;
+  color: #000;
+  -webkit-text-stroke: 0.042em #000;
+  paint-order: stroke fill;
+}
+
+.lcd-digit {
+  position: relative;
+  display: inline-block;
+  overflow: visible;
+}
+
+.lcd-comma-slot {
+  overflow: visible;
+}
+
+/* Status annunciators — BEGIN, f, g on the lower LCD row. */
+.lcd-status-annunciator {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1;
+  -webkit-text-stroke: 0;
+  paint-order: fill;
+}
+
+.lcd-status-annunciator--shift {
+  font-size: 9px;
+  font-weight: 600;
+  font-variant: normal;
+  font-variant-caps: normal;
+  font-feature-settings: normal;
+  text-transform: lowercase;
+  letter-spacing: 0.05em;
+}
+
+.lcd-status-annunciator--begin {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+@media (min-width: 640px) {
+  .lcd-status-annunciator {
+    font-size: 12px;
+  }
+
+  .lcd-status-annunciator--shift {
+    font-size: 10px;
+  }
 }
