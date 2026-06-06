@@ -407,6 +407,37 @@ describe("RpnEngine — STO and RCL (registers 0–9)", () => {
     logStackState(engine, "after STO 3");
   });
 
+  it("recalls Σx with RCL 2 after one-variable Σ+ accumulation", () => {
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.pressSst();
+
+    for (const value of [2, 4, 6]) {
+      engine.setX(value);
+      engine.sigmaPlus();
+    }
+
+    engine.pressRcl();
+    engine.pressDigit("2");
+
+    expect(engine.display).toBe(12);
+    expect(engine.getStorage()[2]).toBe(12);
+  });
+
+  it("recalls n with RCL 1 after Σ+ accumulation", () => {
+    const engine = createRpnEngine();
+
+    for (const value of [2, 4, 6]) {
+      engine.setX(value);
+      engine.sigmaPlus();
+    }
+
+    engine.pressRcl();
+    engine.pressDigit("1");
+
+    expect(engine.display).toBe(3);
+  });
+
   it("recalls a register into X with RCL then digit", () => {
     const engine = createRpnEngine();
     engine.setX(99);

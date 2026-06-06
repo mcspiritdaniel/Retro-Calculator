@@ -27,6 +27,7 @@ import { computeIrr, computeNpvFromRegisters } from "./cash-flow";
 import { DEFAULT_DISPLAY_DECIMALS, formatFullMantissa, roundToDisplayDecimalPlaces, SCIENTIFIC_EXPONENT_DIGITS } from "./lcd-format";
 import {
   accumulatePair,
+  applyStatisticsRegisterValue,
   countZeroXValues,
   correlationCoefficient,
   createEmptyStatistics,
@@ -39,6 +40,7 @@ import {
   removePair,
   sampleStdDevOfX,
   sampleStdDevOfY,
+  statisticsRegisterValue,
   weightedMean,
   type StatisticsRegisters,
 } from "./statistics";
@@ -1023,12 +1025,23 @@ export class RpnEngine {
 
   private clearStatistics(): void {
     this.statistics = createEmptyStatistics();
+    this.syncStatisticsToStorage();
     this.stack = { x: 0, y: 0, z: 0, t: 0 };
     this.pendingStatAlternate = null;
     this.endEntry();
     this.fShift = false;
     this.clearMemoryPrefix();
     this.stackLiftEnabled = false;
+  }
+
+  /** Keep faceplate registers R1–R6 aligned with statistics accumulators. */
+  private syncStatisticsToStorage(): void {
+    for (let register = 1; register <= 6; register += 1) {
+      const value = statisticsRegisterValue(register, this.statistics);
+      if (value !== null) {
+        this.storage[register] = value;
+      }
+    }
   }
 
   private recallMeanOfX(): void {
@@ -1107,14 +1120,26 @@ export class RpnEngine {
 
   private storeToRegister(register: number): void {
     this.endEntry();
-    this.storage[register] = roundToInternalPrecision(this.stack.x);
+    const value = roundToInternalPrecision(this.stack.x);
+    this.storage[register] = value;
+    if (register >= 1 && register <= 6) {
+      this.statistics = applyStatisticsRegisterValue(
+        register,
+        value,
+        this.statistics,
+      );
+    }
     this.clearMemoryPrefix();
     this.stackLiftEnabled = true;
   }
 
   private recallFromRegister(register: number): void {
     this.endEntry();
-    this.stack.x = roundToInternalPrecision(this.storage[register]);
+    const statisticsValue = statisticsRegisterValue(register, this.statistics);
+    this.stack.x =
+      statisticsValue !== null && register >= 1 && register <= 6
+        ? statisticsValue
+        : roundToInternalPrecision(this.storage[register]);
     this.clearMemoryPrefix();
     this.stackLiftEnabled = true;
   }
@@ -1479,6 +1504,7 @@ export class RpnEngine {
 
     const { x, y } = this.stack;
     this.statistics = accumulatePair(this.statistics, x, y);
+    this.syncStatisticsToStorage();
     this.stack.x = roundToInternalPrecision(this.statistics.n);
     this.fShift = false;
     this.gShift = false;
@@ -1493,6 +1519,7 @@ export class RpnEngine {
 
     const { x, y } = this.stack;
     this.statistics = removePair(this.statistics, x, y);
+    this.syncStatisticsToStorage();
     this.stack.x = roundToInternalPrecision(this.statistics.n);
     this.fShift = false;
     this.gShift = false;

@@ -158,6 +158,54 @@ export function countZeroXValues(stats: StatisticsRegisters): number {
   return roundToInternalPrecision(stats.countXZero);
 }
 
+/** Statistics registers R1–R6 map to storage registers 1–6 on the faceplate. */
+export function statisticsRegisterValue(
+  register: number,
+  stats: StatisticsRegisters,
+): number | null {
+  switch (register) {
+    case 1:
+      return roundToInternalPrecision(stats.n);
+    case 2:
+      return roundToInternalPrecision(stats.sumX);
+    case 3:
+      return roundToInternalPrecision(stats.sumX2);
+    case 4:
+      return roundToInternalPrecision(stats.sumY);
+    case 5:
+      return roundToInternalPrecision(stats.sumY2);
+    case 6:
+      return roundToInternalPrecision(stats.sumXY);
+    default:
+      return null;
+  }
+}
+
+export function applyStatisticsRegisterValue(
+  register: number,
+  value: number,
+  stats: StatisticsRegisters,
+): StatisticsRegisters {
+  const rounded = roundToInternalPrecision(value);
+
+  switch (register) {
+    case 1:
+      return { ...stats, n: rounded };
+    case 2:
+      return { ...stats, sumX: rounded };
+    case 3:
+      return { ...stats, sumX2: rounded };
+    case 4:
+      return { ...stats, sumY: rounded };
+    case 5:
+      return { ...stats, sumY2: rounded };
+    case 6:
+      return { ...stats, sumXY: rounded };
+    default:
+      return stats;
+  }
+}
+
 /** Least-squares slope B in y = A + Bx. */
 export function linearRegressionSlope(stats: StatisticsRegisters): number {
   const { n, sumX, sumX2, sumY, sumXY } = stats;

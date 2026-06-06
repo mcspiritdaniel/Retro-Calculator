@@ -46,7 +46,7 @@ const KEY_NOTES: Record<string, string> = {
   "g Σ+": "Remove last Σ+ pair (Σ−).",
   "Σ+": "Add X and Y to statistics (Σ+).",
   STO: "Store prefix — next digit selects register 0–9.",
-  RCL: "Recall prefix — next digit selects register 0–9.",
+  RCL: "Recall prefix — registers 1–6 hold Σ statistics (RCL 2 = Σx).",
   f: "Toggle f shift (web: stays active until cleared or used).",
   g: "Toggle g shift (web: stays active until cleared or used).",
   "f CLx": "Clear financial registers (FIN).",
