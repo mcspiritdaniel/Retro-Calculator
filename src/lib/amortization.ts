@@ -64,8 +64,26 @@ export function simpleInterest360(
   iPercent: number,
   days: number,
 ): number {
+  return simpleInterestForYearBasis(pv, iPercent, days, 360);
+}
+
+/** Simple interest on a 365-day basis: I = |PV| × i × n / 365. */
+export function simpleInterest365(
+  pv: number,
+  iPercent: number,
+  days: number,
+): number {
+  return simpleInterestForYearBasis(pv, iPercent, days, 365);
+}
+
+function simpleInterestForYearBasis(
+  pv: number,
+  iPercent: number,
+  days: number,
+  yearBasis: number,
+): number {
   const magnitude = roundToInternalPrecision(
-    (Math.abs(pv) * iPercent * days) / (360 * 100),
+    (Math.abs(pv) * iPercent * days) / (yearBasis * 100),
   );
   return pv <= 0 ? magnitude : -magnitude;
 }

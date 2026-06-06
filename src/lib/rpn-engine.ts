@@ -16,7 +16,7 @@ import {
   sumOfYearsDigitsDepreciation,
 } from "./depreciation";
 import { factorial } from "./factorial";
-import { amortizePayments, simpleInterest360 } from "./amortization";
+import { amortizePayments, simpleInterest360, simpleInterest365 } from "./amortization";
 import {
   addDaysToDate,
   daysBetweenDates,
@@ -1450,16 +1450,15 @@ export class RpnEngine {
     this.stackLiftEnabled = true;
   }
 
-  /** f + i — simple interest on a 360-day basis using n, i, and PV. */
+  /** f + i — simple interest; X = 360-day interest, Y = |PV|, Z = 365-day interest. */
   simpleInterest(): void {
     this.endEntry();
     this.clearMemoryPrefix();
 
-    this.stack.x = simpleInterest360(
-      this.financial.pv,
-      this.financial.i,
-      this.financial.n,
-    );
+    const { pv, i, n } = this.financial;
+    this.stack.x = simpleInterest360(pv, i, n);
+    this.stack.y = roundToInternalPrecision(Math.abs(pv));
+    this.stack.z = simpleInterest365(pv, i, n);
     this.fShift = false;
     this.stackLiftEnabled = true;
   }

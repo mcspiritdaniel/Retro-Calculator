@@ -249,12 +249,14 @@ export const HELP_RECIPES: HelpRecipe[] = [
     id: "simple-interest",
     title: "Simple interest (360-day year)",
     keywords: ["simple interest", "interest amount", "360 day", "int"],
-    summary: "Interest = PV × i × n / 360 with i as annual percent.",
+    summary: "Interest = |PV| × i × n / 360 with i as annual percent.",
     steps: [
       "Enter days, press n.",
       "Enter rate (%), press i.",
       "Enter principal, press PV (CHS if outflow).",
-      "Press f i (INT) — interest amount in X.",
+      "Press f i (INT) — 360-day interest in X; |PV| kept in Y.",
+      "Press + for total amount (principal plus interest).",
+      "Optional: press R↓, then x↔y for 365-day interest before +.",
     ],
   },
   {

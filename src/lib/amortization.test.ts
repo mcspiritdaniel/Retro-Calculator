@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { amortizePayments, simpleInterest360 } from "./amortization";
+import { amortizePayments, simpleInterest360, simpleInterest365 } from "./amortization";
 
 describe("simpleInterest360", () => {
-  it("matches the reference loan example", () => {
+  it("computes 360-day simple interest", () => {
     expect(simpleInterest360(-450, 7, 60)).toBeCloseTo(5.25, 2);
+  });
+
+  it("computes 365-day simple interest", () => {
+    expect(simpleInterest365(-450, 7, 60)).toBeCloseTo(5.18, 2);
   });
 });
 

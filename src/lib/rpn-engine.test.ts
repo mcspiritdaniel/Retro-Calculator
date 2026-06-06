@@ -1062,7 +1062,35 @@ describe("RpnEngine — AMORT, INT, and RND", () => {
     engine.pressTvmI();
 
     expect(engine.display).toBeCloseTo(5.25, 2);
+    expect(engine.getStack().y).toBe(450);
+    expect(engine.getStack().z).toBeCloseTo(5.18, 2);
     expect(engine.fShift).toBe(false);
+  });
+
+  it("adds principal to 360-day interest for the INT manual example", () => {
+    const engine = createRpnEngine();
+    engine.financial = { n: 60, i: 7, pv: -450, pmt: 0, fv: 0 };
+    engine.fShift = true;
+    engine.pressTvmI();
+    engine.add();
+
+    expect(engine.display).toBeCloseTo(455.25, 2);
+  });
+
+  it("shows 365-day interest after INT, R↓, and x↔y, then adds principal", () => {
+    const engine = createRpnEngine();
+    engine.financial = { n: 60, i: 7, pv: -450, pmt: 0, fv: 0 };
+    engine.fShift = true;
+    engine.pressTvmI();
+    engine.rollDown();
+    engine.swapXy();
+
+    expect(engine.display).toBeCloseTo(5.18, 2);
+    expect(engine.getStack().y).toBe(450);
+
+    engine.add();
+
+    expect(engine.display).toBeCloseTo(455.18, 2);
   });
 
   it("rounds X to the active display precision when f then PMT is pressed", () => {
