@@ -99,7 +99,7 @@ export default function HelpPanel() {
   return (
     <section
       aria-label="Help"
-      className="w-full max-w-[1020px] rounded-sm border border-[#d8d6d0] bg-white shadow-sm"
+      className="w-full rounded-sm border border-[#d8d6d0] bg-white shadow-sm"
     >
       <div className="border-b border-[#eceae4] px-4 py-3">
         <div className="flex items-start justify-between gap-3">

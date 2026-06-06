@@ -2,7 +2,7 @@ import { CALCULATOR_OMISSIONS } from "@/lib/calculator-omissions";
 
 export default function CalculatorFootnotes() {
   return (
-    <footer className="w-full max-w-[1020px] px-1 pb-8 pt-2 text-sm text-[#555]">
+    <footer className="w-full px-1 pb-8 pt-2 text-sm text-[#555]">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-[#888]">
         About this web calculator
       </h2>

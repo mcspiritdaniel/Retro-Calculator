@@ -858,6 +858,60 @@ function readLcdView(engine: RpnEngine) {
   };
 }
 
+const CALC_DESIGN_WIDTH = 1020;
+
+function ScaledCalculatorShell({ children }: { children: ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [metrics, setMetrics] = useState({ scale: 1, height: 0 });
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const inner = innerRef.current;
+    if (!container || !inner) return;
+
+    const update = () => {
+      const available = container.clientWidth;
+      const scale = Math.min(1, available / CALC_DESIGN_WIDTH);
+      setMetrics({
+        scale,
+        height: inner.offsetHeight * scale,
+      });
+    };
+
+    update();
+    const resizeObserver = new ResizeObserver(update);
+    resizeObserver.observe(container);
+    resizeObserver.observe(inner);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  const { scale, height } = metrics;
+
+  return (
+    <div ref={containerRef} className="w-full min-w-0">
+      <div
+        className="overflow-hidden"
+        style={{
+          width: CALC_DESIGN_WIDTH * scale,
+          height: height || undefined,
+        }}
+      >
+        <div
+          ref={innerRef}
+          style={{
+            width: CALC_DESIGN_WIDTH,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RetroCalculator() {
   const [engine] = useState(() => createRpnEngine());
   const [lcdView, setLcdView] = useState(() => readLcdView(engine));
@@ -914,19 +968,19 @@ export default function RetroCalculator() {
       className="flex min-h-full flex-col items-center p-6 sm:p-10 md:px-10 md:pb-10 md:pt-0"
       style={{ background: "#f4f3ef" }}
     >
-      <div
-        className="z-10 w-full max-w-[1020px] bg-[#f4f3ef] pb-4 md:sticky md:top-0 md:z-20 md:pb-6 md:pt-10"
-      >
-        <div
-          className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_30px_80px_rgba(0,0,0,0.75)] sm:px-5"
-          style={{
-            background: COLORS.chassis,
-            borderTop: "none",
-            borderRight: `2px solid ${COLORS.chassisEdge}`,
-            borderBottom: "none",
-            borderLeft: `2px solid ${COLORS.chassisEdge}`,
-          }}
-        >
+      <div className="w-full max-w-[1200px] md:pt-6 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:pt-8 xl:max-w-[1360px]">
+        <div className="sticky top-6 z-20 min-w-0 w-full self-start bg-[#f4f3ef] pb-4 lg:top-8">
+          <ScaledCalculatorShell>
+            <div
+              className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_30px_80px_rgba(0,0,0,0.75)] sm:px-5"
+              style={{
+                background: COLORS.chassis,
+                borderTop: "none",
+                borderRight: `2px solid ${COLORS.chassisEdge}`,
+                borderBottom: "none",
+                borderLeft: `2px solid ${COLORS.chassisEdge}`,
+              }}
+            >
         <span className="sr-only" aria-live="polite">
           {lcdView.text}
         </span>
@@ -956,7 +1010,7 @@ export default function RetroCalculator() {
 
           <div className={`relative z-10 min-w-0 ${GRID_10}`}>
             <div
-              className="relative min-w-0 overflow-visible rounded-[1px] py-[24px] pr-3 pl-0 sm:py-[26px] sm:pr-4 sm:pl-0"
+              className="relative min-w-0 overflow-hidden rounded-[1px] py-[24px] pr-3 pl-0 sm:py-[26px] sm:pr-4 sm:pl-0"
               style={{
                 gridColumn: "2 / 8",
                 marginLeft: LCD_COLUMN_INSET,
@@ -974,7 +1028,7 @@ export default function RetroCalculator() {
                 }}
               />
               <p
-                className={`relative z-[1] min-h-[1em] w-full min-w-0 overflow-visible ${LCD_DISPLAY_CLASS}`}
+                className={`relative z-[1] min-h-[1em] w-full min-w-0 overflow-hidden ${LCD_DISPLAY_CLASS}`}
                 style={{
                   color: COLORS.lcdText,
                   ...LCD_FONT,
@@ -1462,17 +1516,19 @@ export default function RetroCalculator() {
             </div>
           </div>
         </div>
-      </div>
-      </div>
+            </div>
+          </ScaledCalculatorShell>
+        </div>
 
-      <div className="flex w-full max-w-[1020px] flex-col items-center gap-6">
-        <HelpPanel />
-        <ActivityLog
-          entries={logEntries}
-          decimalPlaces={engine.decimalPlaces}
-          onClear={clearLog}
-        />
-        <CalculatorFootnotes />
+        <div className="mt-6 flex w-full min-w-0 flex-col gap-6 lg:mt-0">
+          <HelpPanel />
+          <ActivityLog
+            entries={logEntries}
+            decimalPlaces={engine.decimalPlaces}
+            onClear={clearLog}
+          />
+          <CalculatorFootnotes />
+        </div>
       </div>
     </div>
   );
