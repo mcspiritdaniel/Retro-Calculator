@@ -41,6 +41,16 @@ export const CALCULATOR_OMISSIONS: OmissionSection[] = [
     ],
   },
   {
+    heading: "TVM notes",
+    items: [
+      {
+        title: "Solving for n",
+        detail:
+          "When the exact period count is fractional, n is rounded up to the next whole number (e.g. 327.44 displays as 328). That is the total number of payments — full periods plus one smaller final payment. PMT and the other registers are not adjusted automatically; use FV or AMORT to work out the last payment if needed.",
+      },
+    ],
+  },
+  {
     heading: "Web behavior (vs. original hardware)",
     items: [
       {

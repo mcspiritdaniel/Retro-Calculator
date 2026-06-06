@@ -187,11 +187,29 @@ function solveNBeg(state: FinancialRegisters): number {
   return (low + high) / 2;
 }
 
+/**
+ * HP-12C rounds n up to the next integer when the exact period count is fractional,
+ * so the displayed value is the total number of payments (full + one partial).
+ */
+function roundNForHp12c(exact: number): number {
+  if (!Number.isFinite(exact)) {
+    return exact;
+  }
+
+  const nearestInteger = Math.round(exact);
+  if (Math.abs(exact - nearestInteger) < TOLERANCE) {
+    return nearestInteger;
+  }
+
+  return Math.ceil(exact - TOLERANCE);
+}
+
 export function solveN(
   state: FinancialRegisters,
   mode: PaymentMode = "end",
 ): number {
-  return mode === "beg" ? solveNBeg(state) : solveNEnd(state);
+  const exact = mode === "beg" ? solveNBeg(state) : solveNEnd(state);
+  return roundNForHp12c(exact);
 }
 
 export function solveInterest(
