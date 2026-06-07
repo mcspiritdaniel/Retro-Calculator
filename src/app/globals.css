@@ -9,8 +9,9 @@
 }
 
 :root {
-  --background: #f4f3ef;
+  --background: #ffffff;
   --foreground: #171717;
+  --reference-zone: #ecf1f2;
 }
 
 @theme inline {
@@ -22,13 +23,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #f4f3ef;
+    --background: #ffffff;
     --foreground: #171717;
   }
 }
 
 body {
-  background: #f4f3ef;
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }

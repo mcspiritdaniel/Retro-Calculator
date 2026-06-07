@@ -2,25 +2,37 @@ import { CALCULATOR_OMISSIONS } from "@/lib/calculator-omissions";
 
 export default function CalculatorFootnotes() {
   return (
-    <footer className="w-full px-1 pb-8 pt-2 text-sm text-[#555]">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-[#888]">
-        About this web calculator
-      </h2>
-      <div className="mt-3 space-y-4">
-        {CALCULATOR_OMISSIONS.map((section) => (
-          <div key={section.heading}>
-            <h3 className="text-xs font-medium text-[#666]">{section.heading}</h3>
-            <ul className="mt-1.5 space-y-2">
-              {section.items.map((item) => (
-                <li key={item.title} className="leading-snug">
-                  <span className="font-medium text-[#444]">{item.title}.</span>{" "}
-                  {item.detail}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+    <section
+      aria-label="About this web calculator"
+      className="flex h-full min-h-0 w-full flex-col rounded-sm border border-[#d8d6d0] bg-white shadow-sm"
+    >
+      <div className="shrink-0 border-b border-[#eceae4] px-4 py-3">
+        <h2 className="text-sm font-semibold tracking-wide text-[#222]">
+          About this web calculator
+        </h2>
+        <p className="mt-0.5 text-xs text-[#666]">
+          Scope, omissions, and independent-project notes.
+        </p>
       </div>
-    </footer>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-xs leading-relaxed text-[#555]">
+        <div className="space-y-4">
+          {CALCULATOR_OMISSIONS.map((section) => (
+            <div key={section.heading}>
+              <h3 className="text-xs font-semibold text-[#444]">
+                {section.heading}
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {section.items.map((item) => (
+                  <li key={item.title}>
+                    <span className="font-medium text-[#333]">{item.title}.</span>{" "}
+                    {item.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

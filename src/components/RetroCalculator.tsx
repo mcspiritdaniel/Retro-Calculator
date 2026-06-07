@@ -11,20 +11,21 @@ import {
 import ActivityLog from "@/components/ActivityLog";
 import CalculatorFootnotes from "@/components/CalculatorFootnotes";
 import HelpPanel from "@/components/HelpPanel";
+import RegistersPanel from "@/components/RegistersPanel";
 import {
   buildKeyLabel,
   createActivityLogEntry,
   type ActivityLogEntry,
 } from "@/lib/activity-log";
 import { formatLcdDisplay, getLcdScientificEntryParts, type LcdScientificEntryParts } from "@/lib/lcd-format";
-import { createRpnEngine, type RpnEngine } from "@/lib/rpn-engine";
+import { createRpnEngine, type RpnEngine, type RpnEngineSnapshot } from "@/lib/rpn-engine";
 
 const COLORS = {
   chassis: "#111111",
   chassisEdge: "#0a0a0a",
-  metalFaceLight: "#c4b896",
-  metalFaceMid: "#ad9870",
-  metalFaceDark: "#958258",
+  metalFaceLight: "#d4dade",
+  metalFaceMid: "#b0bac0",
+  metalFaceDark: "#88949a",
   metalGold: "#b89428",
   metalGoldLight: "#ccb838",
   metalGoldDark: "#857820",
@@ -859,8 +860,15 @@ function readLcdView(engine: RpnEngine) {
 }
 
 const CALC_DESIGN_WIDTH = 1020;
+const MAX_CALC_SCALE = 1.08;
 
-function ScaledCalculatorShell({ children }: { children: ReactNode }) {
+function ScaledCalculatorShell({
+  children,
+  intrinsicWidth = false,
+}: {
+  children: ReactNode;
+  intrinsicWidth?: boolean;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [metrics, setMetrics] = useState({ scale: 1, height: 0 });
@@ -871,11 +879,20 @@ function ScaledCalculatorShell({ children }: { children: ReactNode }) {
     if (!container || !inner) return;
 
     const update = () => {
-      const available = container.clientWidth;
-      const scale = Math.min(1, available / CALC_DESIGN_WIDTH);
+      const availableWidth = container.clientWidth;
+      const availableHeight = container.clientHeight;
+      const naturalHeight = inner.offsetHeight;
+      const widthScale = availableWidth / CALC_DESIGN_WIDTH;
+      const heightScale =
+        availableHeight > 0 && naturalHeight > 0
+          ? availableHeight / naturalHeight
+          : widthScale;
+      const scale = intrinsicWidth
+        ? Math.min(MAX_CALC_SCALE, heightScale)
+        : Math.min(MAX_CALC_SCALE, widthScale, heightScale);
       setMetrics({
         scale,
-        height: inner.offsetHeight * scale,
+        height: naturalHeight * scale,
       });
     };
 
@@ -884,12 +901,17 @@ function ScaledCalculatorShell({ children }: { children: ReactNode }) {
     resizeObserver.observe(container);
     resizeObserver.observe(inner);
     return () => resizeObserver.disconnect();
-  }, []);
+  }, [intrinsicWidth]);
 
   const { scale, height } = metrics;
 
   return (
-    <div ref={containerRef} className="w-full min-w-0">
+    <div
+      ref={containerRef}
+      className={
+        intrinsicWidth ? "h-full w-fit max-w-full min-w-0" : "h-full w-full min-w-0"
+      }
+    >
       <div
         className="overflow-hidden"
         style={{
@@ -917,14 +939,19 @@ export default function RetroCalculator() {
   const [lcdView, setLcdView] = useState(() => readLcdView(engine));
   const [isPowered, setIsPowered] = useState(true);
   const [logEntries, setLogEntries] = useState<ActivityLogEntry[]>([]);
+  const [engineSnapshot, setEngineSnapshot] = useState<RpnEngineSnapshot>(() =>
+    engine.getSnapshot(),
+  );
   const logIdRef = useRef(0);
 
-  const syncLcd = useCallback(() => {
+  const syncUi = useCallback(() => {
     setLcdView(readLcdView(engine));
+    setEngineSnapshot(engine.getSnapshot());
   }, [engine]);
 
   const clearLog = useCallback(() => {
     setLogEntries([]);
+    logIdRef.current = 0;
   }, []);
 
   const press = useCallback(
@@ -947,9 +974,9 @@ export default function RetroCalculator() {
       );
 
       setLogEntries((prev) => [...prev, entry]);
-      syncLcd();
+      syncUi();
     },
-    [engine, isPowered, syncLcd],
+    [engine, isPowered, syncUi],
   );
 
   const togglePower = useCallback(() => {
@@ -960,19 +987,23 @@ export default function RetroCalculator() {
       }
       return !prev;
     });
-    syncLcd();
-  }, [engine, syncLcd]);
+    syncUi();
+  }, [engine, syncUi]);
 
   return (
-    <div
-      className="flex min-h-full flex-col items-center p-6 sm:p-10 md:px-10 md:pb-10 md:pt-0"
-      style={{ background: "#f4f3ef" }}
-    >
-      <div className="w-full max-w-[1200px] md:pt-6 lg:grid lg:grid-cols-2 lg:gap-x-10 lg:pt-8 xl:max-w-[1360px]">
-        <div className="sticky top-6 z-20 min-w-0 w-full self-start bg-[#f4f3ef] pb-4 lg:top-8">
-          <ScaledCalculatorShell>
+    <div className="flex h-dvh w-full flex-col overflow-hidden">
+      <header className="shrink-0 border-b border-[#d0d8da] bg-white px-5 py-2.5 xl:px-8">
+        <h1 className="text-sm font-semibold tracking-wide text-[#222]">
+          RPN Financial Calculator
+        </h1>
+        <p className="mt-0.5 text-xs text-[#888]">Dan McSpirit</p>
+      </header>
+      <div className="grid min-h-0 flex-1 grid-rows-[11fr_9fr]">
+        <div className="flex min-h-0 gap-5 border-b border-[#d0d8da] bg-white px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] xl:gap-6 xl:px-8">
+        <div className="flex h-full shrink-0 items-center overflow-hidden">
+          <ScaledCalculatorShell intrinsicWidth>
             <div
-              className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_30px_80px_rgba(0,0,0,0.75)] sm:px-5"
+              className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_8px_24px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.1)] sm:px-5"
               style={{
                 background: COLORS.chassis,
                 borderTop: "none",
@@ -1519,16 +1550,28 @@ export default function RetroCalculator() {
             </div>
           </ScaledCalculatorShell>
         </div>
-
-        <div className="mt-6 flex w-full min-w-0 flex-col gap-6 lg:mt-0">
-          <HelpPanel />
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <ActivityLog
             entries={logEntries}
             decimalPlaces={engine.decimalPlaces}
             onClear={clearLog}
           />
+        </div>
+      </div>
+      <div
+        className="grid min-h-0 grid-cols-[minmax(300px,540px)_minmax(220px,280px)_minmax(300px,1fr)] gap-5 px-5 py-4 xl:gap-6 xl:px-8"
+        style={{ background: "#ECF1F2" }}
+      >
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <HelpPanel />
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <RegistersPanel snapshot={engineSnapshot} />
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-col">
           <CalculatorFootnotes />
         </div>
+      </div>
       </div>
     </div>
   );

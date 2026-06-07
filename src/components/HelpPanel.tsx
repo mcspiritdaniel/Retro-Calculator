@@ -11,7 +11,7 @@ import { searchHelpRecipes } from "@/lib/help-search";
 
 function HelpRecipeCard({ recipe }: { recipe: HelpRecipe }) {
   return (
-    <article className="rounded border border-[#eceae4] bg-[#faf9f7] px-4 py-3">
+    <article className="rounded border border-[#d0d8da] bg-[#f4f7f8] px-4 py-3">
       <h3 className="text-sm font-semibold text-[#222]">{recipe.title}</h3>
       <p className="mt-1 text-xs leading-relaxed text-[#555]">{recipe.summary}</p>
       <ol className="mt-2.5 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-[#333]">
@@ -25,7 +25,7 @@ function HelpRecipeCard({ recipe }: { recipe: HelpRecipe }) {
 
 function RpnBasicsCard() {
   return (
-    <article className="rounded border border-[#e8e4da] bg-[#f8f6f0] px-4 py-3">
+    <article className="rounded border border-[#d0d8da] bg-[#eef2f3] px-4 py-3">
       <h3 className="text-sm font-semibold text-[#222]">{RPN_BASICS.title}</h3>
       <p className="mt-1 text-xs leading-relaxed text-[#555]">{RPN_BASICS.summary}</p>
       <ul className="mt-2.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-[#333]">
@@ -57,7 +57,7 @@ function PopularTopics({
               key={id}
               type="button"
               onClick={() => onSelect(id)}
-              className="rounded-full border border-[#ddd] bg-[#f4f3ef] px-3 py-1 text-xs font-medium text-[#444] transition hover:border-[#bbb] hover:bg-white"
+              className="rounded-full border border-[#d0d8da] bg-white px-3 py-1 text-xs font-medium text-[#444] transition hover:border-[#88949a] hover:bg-[#f4f7f8]"
             >
               {recipe.title}
             </button>
@@ -99,9 +99,9 @@ export default function HelpPanel() {
   return (
     <section
       aria-label="Help"
-      className="w-full rounded-sm border border-[#d8d6d0] bg-white shadow-sm"
+      className="flex h-full min-h-0 w-full flex-col rounded-sm border border-[#d8d6d0] bg-white shadow-sm"
     >
-      <div className="border-b border-[#eceae4] px-4 py-3">
+      <div className="shrink-0 border-b border-[#eceae4] px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold tracking-wide text-[#222]">Help</h2>
@@ -113,7 +113,7 @@ export default function HelpPanel() {
             <button
               type="button"
               onClick={returnToHome}
-              className="shrink-0 rounded border border-[#ccc] px-3 py-1.5 text-xs font-medium text-[#333] transition hover:bg-[#f4f3ef]"
+              className="shrink-0 rounded border border-[#ccc] px-3 py-1.5 text-xs font-medium text-[#333] transition hover:border-[#88949a] hover:bg-[#f4f7f8]"
             >
               ← All topics
             </button>
@@ -129,12 +129,12 @@ export default function HelpPanel() {
               setSelectedId(null);
             }}
             placeholder="Try: NPV, bond price, DATE…"
-            className="w-full rounded border border-[#ccc] bg-white px-3 py-2 text-sm text-[#222] outline-none ring-[#b89428] placeholder:text-[#999] focus:ring-2"
+            className="w-full rounded border border-[#ccc] bg-white px-3 py-2 text-sm text-[#222] outline-none ring-[#88949a] placeholder:text-[#999] focus:ring-2"
           />
         </label>
       </div>
 
-      <div className="space-y-4 px-4 py-3">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3">
         {isHome ? (
           <>
             <RpnBasicsCard />

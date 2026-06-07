@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Retro Calculator",
+  title: "RPN Financial Calculator",
   description: "A retro RPN financial calculator",
 };
 
@@ -27,7 +27,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="h-dvh overflow-hidden antialiased">{children}</body>
     </html>
   );
 }
