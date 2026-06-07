@@ -25,7 +25,7 @@ describe("tvm-solver — BEG payment mode", () => {
     expect(solveTvm("fv", tutorialState, "beg")).toBeCloseTo(-4350.76, 1);
   });
 
-  it("rounds fractional n up to the next integer (HP-12C log cabin loan)", () => {
+  it("rounds fractional n up to the next integer (log cabin loan example)", () => {
     const logCabin = { n: 0, i: 10.5 / 12, pv: 35000, pmt: -325, fv: 0 };
 
     expect(solveTvm("n", logCabin, "end")).toBe(328);

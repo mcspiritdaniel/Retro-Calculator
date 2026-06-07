@@ -1,6 +1,8 @@
 # Retro Calculator
 
-A retro RPN financial calculator built with Next.js.
+A retro RPN financial calculator built with Next.js. Independent educational project — not affiliated with any calculator manufacturer. See the site footnotes for details.
+
+Licensed under the [MIT License](LICENSE).
 
 ## Getting Started
 

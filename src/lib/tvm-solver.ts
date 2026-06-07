@@ -188,10 +188,10 @@ function solveNBeg(state: FinancialRegisters): number {
 }
 
 /**
- * HP-12C rounds n up to the next integer when the exact period count is fractional,
+ * Classic hardware rounds n up to the next integer when the exact period count is fractional,
  * so the displayed value is the total number of payments (full + one partial).
  */
-function roundNForHp12c(exact: number): number {
+function roundFractionalPeriodCountUp(exact: number): number {
   if (!Number.isFinite(exact)) {
     return exact;
   }
@@ -209,7 +209,7 @@ export function solveN(
   mode: PaymentMode = "end",
 ): number {
   const exact = mode === "beg" ? solveNBeg(state) : solveNEnd(state);
-  return roundNForHp12c(exact);
+  return roundFractionalPeriodCountUp(exact);
 }
 
 export function solveInterest(

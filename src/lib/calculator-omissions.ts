@@ -11,6 +11,16 @@ export type OmissionSection = {
 /** Features absent or intentionally different in this web calculator. */
 export const CALCULATOR_OMISSIONS: OmissionSection[] = [
   {
+    heading: "Independent project",
+    items: [
+      {
+        title: "Disclaimer",
+        detail:
+          "Educational reproduction of a classic RPN financial calculator layout and behavior. Not affiliated with, endorsed by, or sponsored by any calculator manufacturer. Provided as-is for learning — not intended for commercial or professional financial use.",
+      },
+    ],
+  },
+  {
     heading: "Not implemented",
     items: [
       {
