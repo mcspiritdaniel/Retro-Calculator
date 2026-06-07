@@ -875,7 +875,7 @@ function ScaledCalculatorShell({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const [metrics, setMetrics] = useState({ scale: 1, height: 0 });
+  const [metrics, setMetrics] = useState({ scale: 0, height: 0 });
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -886,7 +886,8 @@ function ScaledCalculatorShell({
       const availableWidth = container.clientWidth;
       const availableHeight = container.clientHeight;
       const naturalHeight = inner.offsetHeight;
-      const widthScale = availableWidth / CALC_DESIGN_WIDTH;
+      const widthScale =
+        availableWidth > 0 ? availableWidth / CALC_DESIGN_WIDTH : 0;
       const heightScale =
         availableHeight > 0 && naturalHeight > 0
           ? availableHeight / naturalHeight
@@ -904,7 +905,11 @@ function ScaledCalculatorShell({
     const resizeObserver = new ResizeObserver(update);
     resizeObserver.observe(container);
     resizeObserver.observe(inner);
-    return () => resizeObserver.disconnect();
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      resizeObserver.disconnect();
+      window.visualViewport?.removeEventListener("resize", update);
+    };
   }, [intrinsicWidth]);
 
   const { scale, height } = metrics;
@@ -913,23 +918,25 @@ function ScaledCalculatorShell({
     <div
       ref={containerRef}
       className={
-        intrinsicWidth ? "h-full w-fit max-w-full min-w-0" : "h-full w-full min-w-0"
+        intrinsicWidth
+          ? "h-full w-fit max-w-full min-w-0"
+          : "flex h-full min-h-0 w-full items-start justify-center"
       }
     >
       <div
         className="overflow-hidden"
         style={{
-          width: CALC_DESIGN_WIDTH * scale,
-          height: height || undefined,
-          marginInline: intrinsicWidth ? undefined : "auto",
+          width: scale > 0 ? CALC_DESIGN_WIDTH * scale : undefined,
+          height: height > 0 ? height : undefined,
+          visibility: scale > 0 ? "visible" : "hidden",
         }}
       >
         <div
           ref={innerRef}
           style={{
             width: CALC_DESIGN_WIDTH,
-            transform: `scale(${scale})`,
-            transformOrigin: intrinsicWidth ? "top left" : "top center",
+            transform: scale > 0 ? `scale(${scale})` : undefined,
+            transformOrigin: "top left",
           }}
         >
           {children}
@@ -998,7 +1005,7 @@ export default function RetroCalculator() {
   }, [engine, syncUi]);
 
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden">
+    <div className="flex h-[100dvh] w-full flex-col overflow-hidden supports-[height:100dvh]:h-dvh">
       <header className="shrink-0 border-b border-[#d0d8da] bg-white px-3 py-2 lg:px-5 lg:py-2.5 xl:px-8">
         <h1 className="text-sm font-semibold tracking-wide text-[#222]">
           RPN Financial Calculator
@@ -1013,17 +1020,17 @@ export default function RetroCalculator() {
         }`}
       >
         <div
-          className={`flex min-h-0 border-b border-[#d0d8da] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
+          className={`flex min-h-0 h-full overflow-hidden ${
             isLargeScreen
               ? "gap-5 px-5 py-4 xl:gap-6 xl:px-8"
               : "flex-col px-2 py-2"
-          }`}
+          } border-b border-[#d0d8da] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]`}
         >
         <div
-          className={`flex min-h-0 overflow-hidden ${
+          className={`flex min-h-0 w-full overflow-hidden ${
             isLargeScreen
               ? "h-full shrink-0 items-center"
-              : "flex-1 items-center justify-center"
+              : "h-full flex-1 items-start justify-center"
           }`}
         >
           <ScaledCalculatorShell intrinsicWidth={isLargeScreen}>
