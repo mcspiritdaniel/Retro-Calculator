@@ -11,7 +11,11 @@ import {
 import ActivityLog from "@/components/ActivityLog";
 import CalculatorFootnotes from "@/components/CalculatorFootnotes";
 import HelpPanel from "@/components/HelpPanel";
+import MobileReferenceTabs, {
+  type MobileReferenceTab,
+} from "@/components/MobileReferenceTabs";
 import RegistersPanel from "@/components/RegistersPanel";
+import { useLargeScreenLayout } from "@/hooks/use-large-screen-layout";
 import {
   buildKeyLabel,
   createActivityLogEntry,
@@ -917,6 +921,7 @@ function ScaledCalculatorShell({
         style={{
           width: CALC_DESIGN_WIDTH * scale,
           height: height || undefined,
+          marginInline: intrinsicWidth ? undefined : "auto",
         }}
       >
         <div
@@ -924,7 +929,7 @@ function ScaledCalculatorShell({
           style={{
             width: CALC_DESIGN_WIDTH,
             transform: `scale(${scale})`,
-            transformOrigin: "top left",
+            transformOrigin: intrinsicWidth ? "top left" : "top center",
           }}
         >
           {children}
@@ -943,6 +948,8 @@ export default function RetroCalculator() {
     engine.getSnapshot(),
   );
   const logIdRef = useRef(0);
+  const isLargeScreen = useLargeScreenLayout();
+  const [mobileTab, setMobileTab] = useState<MobileReferenceTab>("log");
 
   const syncUi = useCallback(() => {
     setLcdView(readLcdView(engine));
@@ -992,16 +999,34 @@ export default function RetroCalculator() {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-[#d0d8da] bg-white px-5 py-2.5 xl:px-8">
+      <header className="shrink-0 border-b border-[#d0d8da] bg-white px-3 py-2 lg:px-5 lg:py-2.5 xl:px-8">
         <h1 className="text-sm font-semibold tracking-wide text-[#222]">
           RPN Financial Calculator
         </h1>
         <p className="mt-0.5 text-xs text-[#888]">Dan McSpirit</p>
       </header>
-      <div className="grid min-h-0 flex-1 grid-rows-[11fr_9fr]">
-        <div className="flex min-h-0 gap-5 border-b border-[#d0d8da] bg-white px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] xl:gap-6 xl:px-8">
-        <div className="flex h-full shrink-0 items-center overflow-hidden">
-          <ScaledCalculatorShell intrinsicWidth>
+      <div
+        className={`grid min-h-0 flex-1 ${
+          isLargeScreen
+            ? "grid-rows-[11fr_9fr]"
+            : "grid-rows-[minmax(0,13fr)_auto_minmax(0,7fr)]"
+        }`}
+      >
+        <div
+          className={`flex min-h-0 border-b border-[#d0d8da] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
+            isLargeScreen
+              ? "gap-5 px-5 py-4 xl:gap-6 xl:px-8"
+              : "flex-col px-2 py-2"
+          }`}
+        >
+        <div
+          className={`flex min-h-0 overflow-hidden ${
+            isLargeScreen
+              ? "h-full shrink-0 items-center"
+              : "flex-1 items-center justify-center"
+          }`}
+        >
+          <ScaledCalculatorShell intrinsicWidth={isLargeScreen}>
             <div
               className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_8px_24px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.1)] sm:px-5"
               style={{
@@ -1550,27 +1575,55 @@ export default function RetroCalculator() {
             </div>
           </ScaledCalculatorShell>
         </div>
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <ActivityLog
-            entries={logEntries}
-            decimalPlaces={engine.decimalPlaces}
-            onClear={clearLog}
-          />
-        </div>
+        {isLargeScreen ? (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <ActivityLog
+              entries={logEntries}
+              decimalPlaces={engine.decimalPlaces}
+              onClear={clearLog}
+            />
+          </div>
+        ) : null}
       </div>
+      {!isLargeScreen ? (
+        <MobileReferenceTabs active={mobileTab} onChange={setMobileTab} />
+      ) : null}
       <div
-        className="grid min-h-0 grid-cols-[minmax(300px,540px)_minmax(220px,280px)_minmax(300px,1fr)] gap-5 px-5 py-4 xl:gap-6 xl:px-8"
+        className={
+          isLargeScreen
+            ? "grid min-h-0 grid-cols-[minmax(300px,540px)_minmax(220px,280px)_minmax(300px,1fr)] gap-5 px-5 py-4 xl:gap-6 xl:px-8"
+            : "flex min-h-0 flex-col overflow-hidden px-2 py-2"
+        }
         style={{ background: "#ECF1F2" }}
       >
-        <div className="flex min-h-0 min-w-0 flex-col">
-          <HelpPanel />
-        </div>
-        <div className="flex min-h-0 min-w-0 flex-col">
-          <RegistersPanel snapshot={engineSnapshot} />
-        </div>
-        <div className="flex min-h-0 min-w-0 flex-col">
-          <CalculatorFootnotes />
-        </div>
+        {isLargeScreen ? (
+          <>
+            <div className="flex min-h-0 min-w-0 flex-col">
+              <HelpPanel />
+            </div>
+            <div className="flex min-h-0 min-w-0 flex-col">
+              <RegistersPanel snapshot={engineSnapshot} />
+            </div>
+            <div className="flex min-h-0 min-w-0 flex-col">
+              <CalculatorFootnotes />
+            </div>
+          </>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col">
+            {mobileTab === "log" ? (
+              <ActivityLog
+                entries={logEntries}
+                decimalPlaces={engine.decimalPlaces}
+                onClear={clearLog}
+              />
+            ) : null}
+            {mobileTab === "registers" ? (
+              <RegistersPanel snapshot={engineSnapshot} />
+            ) : null}
+            {mobileTab === "help" ? <HelpPanel /> : null}
+            {mobileTab === "about" ? <CalculatorFootnotes /> : null}
+          </div>
+        )}
       </div>
       </div>
     </div>
