@@ -197,6 +197,12 @@ export class RpnEngine {
   /** Set after STO or RCL; next digit 0–9 completes the operation. */
   private memoryPrefix: MemoryPrefix | null = null;
 
+  /**
+   * When true, the next TVM key stores X into that register instead of solving.
+   * Set after arithmetic; cleared by TVM store/solve or new digit entry.
+   */
+  private financialStorePending = false;
+
   /** TVM payment timing: END (ordinary annuity) or BEG (annuity due). */
   paymentMode: PaymentMode = "end";
 
@@ -363,6 +369,7 @@ export class RpnEngine {
     this.clearMemoryPrefix();
     this.lift();
     this.stackLiftEnabled = false;
+    this.financialStorePending = true;
   }
 
   /**
@@ -762,7 +769,40 @@ export class RpnEngine {
       return;
     }
 
-    this.handleTvmKey("n");
+    this.routeTvmKey("n");
+  }
+
+  private routeTvmKey(key: TvmRegister): void {
+    if (this.memoryPrefix === "rcl") {
+      this.recallFinancialRegister(key);
+      return;
+    }
+
+    if (this.memoryPrefix === "sto") {
+      this.storeFinancialRegister(key);
+      return;
+    }
+
+    this.handleTvmKey(key);
+  }
+
+  private recallFinancialRegister(key: TvmRegister): void {
+    this.endEntry();
+    this.clearMemoryPrefix();
+    if (this.stackLiftEnabled) {
+      this.lift();
+    }
+    this.stack.x = roundToInternalPrecision(this.financial[key]);
+    this.stackLiftEnabled = true;
+    this.financialStorePending = false;
+  }
+
+  private storeFinancialRegister(key: TvmRegister): void {
+    this.endEntry();
+    this.clearMemoryPrefix();
+    this.financial[key] = roundToInternalPrecision(this.stack.x);
+    this.stackLiftEnabled = false;
+    this.financialStorePending = false;
   }
 
   pressTvmI(): void {
@@ -776,7 +816,7 @@ export class RpnEngine {
       return;
     }
 
-    this.handleTvmKey("i");
+    this.routeTvmKey("i");
   }
 
   pressTvmPv(): void {
@@ -790,7 +830,7 @@ export class RpnEngine {
       return;
     }
 
-    this.handleTvmKey("pv");
+    this.routeTvmKey("pv");
   }
 
   pressTvmPmt(): void {
@@ -804,7 +844,7 @@ export class RpnEngine {
       return;
     }
 
-    this.handleTvmKey("pmt");
+    this.routeTvmKey("pmt");
   }
 
   pressTvmFv(): void {
@@ -818,7 +858,7 @@ export class RpnEngine {
       return;
     }
 
-    this.handleTvmKey("fv");
+    this.routeTvmKey("fv");
   }
 
   private applyAnnualToPeriodic(
@@ -917,6 +957,7 @@ export class RpnEngine {
     this.inputBuffer = "";
     this.isEntering = true;
     this.stackLiftEnabled = false;
+    this.financialStorePending = false;
   }
 
   private commitBufferToX(): void {
@@ -1154,10 +1195,11 @@ export class RpnEngine {
   private handleTvmKey(key: TvmRegister): void {
     this.clearMemoryPrefix();
 
-    if (this.isEntering) {
+    if (this.isEntering || this.financialStorePending) {
       this.financial[key] = roundToInternalPrecision(this.stack.x);
       this.endEntry();
       this.stackLiftEnabled = false;
+      this.financialStorePending = false;
       return;
     }
 
@@ -1165,6 +1207,7 @@ export class RpnEngine {
     if (!Number.isFinite(result)) {
       this.stack.x = Number.NaN;
       this.endEntry();
+      this.financialStorePending = false;
       return;
     }
 
@@ -1173,6 +1216,7 @@ export class RpnEngine {
     this.stack.x = rounded;
     this.endEntry();
     this.stackLiftEnabled = true;
+    this.financialStorePending = false;
   }
 
   private binaryOp(operation: (y: number, x: number) => number): void {
@@ -1183,6 +1227,7 @@ export class RpnEngine {
     this.drop(result);
     this.clearShifts();
     this.stackLiftEnabled = true;
+    this.financialStorePending = true;
   }
 
   private unaryOp(operation: (x: number) => number): void {
@@ -1193,6 +1238,7 @@ export class RpnEngine {
     this.stack.x = result;
     this.clearShifts();
     this.stackLiftEnabled = true;
+    this.financialStorePending = true;
   }
 
   /**
@@ -1205,6 +1251,7 @@ export class RpnEngine {
     this.stack.x = roundToInternalPrecision(operation(this.stack.y, this.stack.x));
     this.clearShifts();
     this.stackLiftEnabled = true;
+    this.financialStorePending = true;
   }
 
   private clearShifts(): void {

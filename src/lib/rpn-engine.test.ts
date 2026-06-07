@@ -616,6 +616,73 @@ describe("RpnEngine — TVM solvers", () => {
     expect(engine.stackLiftEnabled).toBe(true);
   });
 
+  it("stores a computed value into PV after arithmetic instead of re-solving", () => {
+    const engine = createRpnEngine();
+    engine.financial = { n: 360, i: 11.5 / 12, pv: 60000, pmt: -594.17, fv: 0 };
+
+    engine.pressRcl();
+    engine.pressTvmPv();
+    expect(engine.display).toBe(60000);
+
+    engine.pressDigit("2");
+    engine.pressPercentKey();
+    engine.subtract();
+    engine.pressDigit("1");
+    engine.pressDigit("5");
+    engine.pressDigit("0");
+    engine.subtract();
+    engine.pressTvmPv();
+
+    expect(engine.display).toBe(58650);
+    expect(engine.financial.pv).toBe(58650);
+  });
+
+  it("matches the mortgage APR example with points and closing costs", () => {
+    const pressNumber = (engine: ReturnType<typeof createRpnEngine>, value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const engine = createRpnEngine();
+    engine.gShift = true;
+    engine.pressDigit("8");
+    engine.fShift = true;
+    engine.swapXy();
+
+    pressNumber(engine, "30");
+    engine.gShift = true;
+    engine.pressTvmN();
+    pressNumber(engine, "11.5");
+    engine.gShift = true;
+    engine.pressTvmI();
+    pressNumber(engine, "60000");
+    engine.pressTvmPv();
+    engine.pressTvmPmt();
+    expect(engine.display).toBeCloseTo(-594.17, 2);
+
+    engine.pressRcl();
+    engine.pressTvmPv();
+    engine.pressDigit("2");
+    engine.pressPercentKey();
+    engine.subtract();
+    pressNumber(engine, "150");
+    engine.subtract();
+    engine.pressTvmPv();
+    expect(engine.financial.pv).toBe(58650);
+
+    engine.pressTvmI();
+    expect(engine.display).toBeCloseTo(0.98, 2);
+
+    pressNumber(engine, "12");
+    engine.multiply();
+    expect(engine.display).toBeCloseTo(11.8, 2);
+  });
+
   it("clears all TVM registers when f then x↔y is pressed", () => {
     const engine = createRpnEngine();
     engine.financial = { n: 30, i: 5, pv: -10000, pmt: 650.51, fv: 0 };
