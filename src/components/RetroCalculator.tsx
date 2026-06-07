@@ -15,7 +15,7 @@ import MobileReferenceTabs, {
   type MobileReferenceTab,
 } from "@/components/MobileReferenceTabs";
 import RegistersPanel from "@/components/RegistersPanel";
-import { useLargeScreenLayout } from "@/hooks/use-large-screen-layout";
+import { useAppLayoutMode } from "@/hooks/use-app-layout-mode";
 import {
   buildKeyLabel,
   createActivityLogEntry,
@@ -865,13 +865,16 @@ function readLcdView(engine: RpnEngine) {
 
 const CALC_DESIGN_WIDTH = 1020;
 const MAX_CALC_SCALE = 1.08;
+const MOBILE_LANDSCAPE_MAX_SCALE = 1.25;
 
 function ScaledCalculatorShell({
   children,
   intrinsicWidth = false,
+  maxScale = MAX_CALC_SCALE,
 }: {
   children: ReactNode;
   intrinsicWidth?: boolean;
+  maxScale?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -893,8 +896,8 @@ function ScaledCalculatorShell({
           ? availableHeight / naturalHeight
           : widthScale;
       const scale = intrinsicWidth
-        ? Math.min(MAX_CALC_SCALE, heightScale)
-        : Math.min(MAX_CALC_SCALE, widthScale, heightScale);
+        ? Math.min(maxScale, heightScale)
+        : Math.min(maxScale, widthScale, heightScale);
       setMetrics({
         scale,
         height: naturalHeight * scale,
@@ -910,7 +913,7 @@ function ScaledCalculatorShell({
       resizeObserver.disconnect();
       window.visualViewport?.removeEventListener("resize", update);
     };
-  }, [intrinsicWidth]);
+  }, [intrinsicWidth, maxScale]);
 
   const { scale, height } = metrics;
 
@@ -955,7 +958,10 @@ export default function RetroCalculator() {
     engine.getSnapshot(),
   );
   const logIdRef = useRef(0);
-  const isLargeScreen = useLargeScreenLayout();
+  const layoutMode = useAppLayoutMode();
+  const isDesktop = layoutMode === "desktop";
+  const isMobilePortrait = layoutMode === "mobile-portrait";
+  const isMobileLandscape = layoutMode === "mobile-landscape";
   const [mobileTab, setMobileTab] = useState<MobileReferenceTab>("log");
 
   const syncUi = useCallback(() => {
@@ -1006,34 +1012,45 @@ export default function RetroCalculator() {
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden supports-[height:100dvh]:h-dvh">
-      <header className="shrink-0 border-b border-[#d0d8da] bg-white px-3 py-2 lg:px-5 lg:py-2.5 xl:px-8">
-        <h1 className="text-sm font-semibold tracking-wide text-[#222]">
-          RPN Financial Calculator
-        </h1>
-        <p className="mt-0.5 text-xs text-[#888]">Dan McSpirit</p>
-      </header>
+      {!isMobileLandscape ? (
+        <header className="shrink-0 border-b border-[#d0d8da] bg-white px-3 py-2 lg:px-5 lg:py-2.5 xl:px-8">
+          <h1 className="text-sm font-semibold tracking-wide text-[#222]">
+            RPN Financial Calculator
+          </h1>
+          <p className="mt-0.5 text-xs text-[#888]">Dan McSpirit</p>
+        </header>
+      ) : null}
       <div
         className={`grid min-h-0 flex-1 ${
-          isLargeScreen
+          isDesktop
             ? "grid-rows-[11fr_9fr]"
-            : "grid-rows-[minmax(0,13fr)_auto_minmax(0,7fr)]"
+            : isMobileLandscape
+              ? "grid-rows-1"
+              : "grid-rows-[auto_auto_minmax(0,1fr)]"
         }`}
       >
         <div
-          className={`flex min-h-0 h-full overflow-hidden ${
-            isLargeScreen
-              ? "gap-5 px-5 py-4 xl:gap-6 xl:px-8"
-              : "flex-col px-2 py-2"
-          } border-b border-[#d0d8da] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]`}
-        >
-        <div
-          className={`flex min-h-0 w-full overflow-hidden ${
-            isLargeScreen
-              ? "h-full shrink-0 items-center"
-              : "h-full flex-1 items-start justify-center"
+          className={`overflow-hidden border-b border-[#d0d8da] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
+            isDesktop
+              ? "flex min-h-0 h-full gap-5 px-5 py-4 xl:gap-6 xl:px-8"
+              : isMobileLandscape
+                ? "flex min-h-0 h-full items-center justify-center px-1 py-1"
+                : "shrink-0 px-2 py-2"
           }`}
         >
-          <ScaledCalculatorShell intrinsicWidth={isLargeScreen}>
+        <div
+          className={`overflow-hidden ${
+            isDesktop
+              ? "flex h-full shrink-0 items-center"
+              : isMobileLandscape
+                ? "flex h-full w-full items-center justify-center"
+                : "flex w-full items-start justify-center"
+          }`}
+        >
+          <ScaledCalculatorShell
+            intrinsicWidth={isDesktop}
+            maxScale={isMobileLandscape ? MOBILE_LANDSCAPE_MAX_SCALE : MAX_CALC_SCALE}
+          >
             <div
               className="relative w-full rounded-sm px-4 pt-px pb-px shadow-[0_8px_24px_rgba(0,0,0,0.22),0_2px_6px_rgba(0,0,0,0.1)] sm:px-5"
               style={{
@@ -1582,7 +1599,7 @@ export default function RetroCalculator() {
             </div>
           </ScaledCalculatorShell>
         </div>
-        {isLargeScreen ? (
+        {isDesktop ? (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <ActivityLog
               entries={logEntries}
@@ -1592,18 +1609,19 @@ export default function RetroCalculator() {
           </div>
         ) : null}
       </div>
-      {!isLargeScreen ? (
+      {isMobilePortrait ? (
         <MobileReferenceTabs active={mobileTab} onChange={setMobileTab} />
       ) : null}
+      {!isMobileLandscape ? (
       <div
         className={
-          isLargeScreen
+          isDesktop
             ? "grid min-h-0 grid-cols-[minmax(300px,540px)_minmax(220px,280px)_minmax(300px,1fr)] gap-5 px-5 py-4 xl:gap-6 xl:px-8"
             : "flex min-h-0 flex-col overflow-hidden px-2 py-2"
         }
         style={{ background: "#ECF1F2" }}
       >
-        {isLargeScreen ? (
+        {isDesktop ? (
           <>
             <div className="flex min-h-0 min-w-0 flex-col">
               <HelpPanel />
@@ -1616,7 +1634,7 @@ export default function RetroCalculator() {
             </div>
           </>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {mobileTab === "log" ? (
               <ActivityLog
                 entries={logEntries}
@@ -1632,6 +1650,7 @@ export default function RetroCalculator() {
           </div>
         )}
       </div>
+      ) : null}
       </div>
     </div>
   );
