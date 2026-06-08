@@ -48,7 +48,7 @@ const KEY_NOTES: Record<string, string> = {
   "g x↔y": "x ≤ y test — 1 if true, else 0.",
   "g Σ+": "Remove last Σ+ pair (Σ−).",
   "Σ+": "Add X and Y to statistics (Σ+).",
-  STO: "Store prefix — next digit selects register 0–9.",
+  STO: "Store prefix — next digit selects register 0–9; updates CFⱼ when cash flows are loaded.",
   RCL: "Recall prefix — R0–R9 hold CF₀–CFⱼ after cash flows are entered.",
   f: "Toggle f shift (web: stays active until cleared or used).",
   g: "Toggle g shift (web: stays active until cleared or used).",

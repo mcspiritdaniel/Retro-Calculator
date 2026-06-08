@@ -1286,7 +1286,9 @@ export class RpnEngine {
           ? roundToInternalPrecision(this.storage[register] + x)
           : roundToInternalPrecision(this.storage[register] - x);
     this.storage[register] = value;
-    if (register >= 1 && register <= 6) {
+    if (this.cashFlows.length > 0 && register < this.cashFlows.length) {
+      this.cashFlows[register] = value;
+    } else if (register >= 1 && register <= 6) {
       this.statistics = applyStatisticsRegisterValue(
         register,
         value,

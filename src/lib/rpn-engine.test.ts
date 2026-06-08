@@ -1328,6 +1328,68 @@ describe("RpnEngine — cash flows and NPV", () => {
     engine.pressTvmN();
     expect(engine.financial.n).toBe(7);
   });
+
+  it("modifies CF₂ with STO 2 and recalculates NPV per the manual example", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.clx();
+
+    pressNumber("79000");
+    engine.chs();
+    engine.gShift = true;
+    engine.pressTvmPv();
+    pressNumber("14000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("11000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("10000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("3");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("9100");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("9000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("2");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("4500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("100000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+
+    expect(engine.cashFlows[2]).toBe(11_000);
+
+    pressNumber("9000");
+    engine.pressSto();
+    engine.pressDigit("2");
+    expect(engine.display).toBe(9000);
+    expect(engine.cashFlows[2]).toBe(9000);
+
+    pressNumber("13.5");
+    engine.pressTvmI();
+    engine.fShift = true;
+    engine.pressTvmPv();
+    expect(engine.display).toBeCloseTo(-644.75, 2);
+  });
 });
 
 describe("RpnEngine — EEX scientific entry", () => {
