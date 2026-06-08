@@ -21,6 +21,7 @@ import {
   addDaysToDate,
   daysBetweenDates,
   formatCalendarDate,
+  parseEncodedDate,
   type DateFormat,
 } from "./calendar";
 import { computeIrr, computeNpvFromRegisters } from "./cash-flow";
@@ -82,6 +83,7 @@ export type RpnEngineSnapshot = {
   storage: number[];
   memoryPrefix: MemoryPrefix | null;
   paymentMode: PaymentMode;
+  compoundOddPeriod: boolean;
   stackLiftEnabled: boolean;
   inputBuffer: string;
   isEntering: boolean;
@@ -187,11 +189,20 @@ export class RpnEngine {
   /** M.DY (default) or D.MY date entry format for calendar functions. */
   dateFormat: DateFormat = "mdy";
 
+  /** After g M.DY / g D.MY: first date ENTER switches display to FIX 2 for the workflow. */
+  private dateEntryActive = false;
+
   /** When true, the LCD shows a calendar date with weekday from DATE. */
   private calendarResultActive = false;
 
   /** When true, the LCD shows all 10 mantissa digits (f + ENTER / PREFIX). */
   private prefixMantissaActive = false;
+
+  /**
+   * Total held after %T so further %T keystrokes (CLx, amount, %T) reuse it
+   * even when stack lift would zero Y.
+   */
+  private percentOfTotalBase: number | null = null;
 
   /** General-purpose storage registers 0–9 (R0–R9). */
   private storage: number[] = Array(STORAGE_REGISTER_COUNT).fill(0);
@@ -210,6 +221,12 @@ export class RpnEngine {
 
   /** TVM payment timing: END (ordinary annuity) or BEG (annuity due). */
   paymentMode: PaymentMode = "end";
+
+  /**
+   * C annunciator — compound (vs. simple) interest on the odd-period fraction of n.
+   * Toggled with STO then EEX; used when n is non-integer.
+   */
+  compoundOddPeriod = false;
 
   /** Active display value (register X). */
   get display(): number {
@@ -260,6 +277,10 @@ export class RpnEngine {
     return this.dateFormat === "dmy";
   }
 
+  getShowCompoundOddAnnunciator(): boolean {
+    return this.compoundOddPeriod;
+  }
+
   getCalendarDisplayText(): string | null {
     if (this.calendarResultActive && !this.isEntering && !this.isEnteringExponent) {
       return formatCalendarDate(this.stack.x, this.stack.y, this.dateFormat);
@@ -295,6 +316,7 @@ export class RpnEngine {
       storage: [...this.getStorage()],
       memoryPrefix: this.memoryPrefix,
       paymentMode: this.paymentMode,
+      compoundOddPeriod: this.compoundOddPeriod,
       stackLiftEnabled: this.stackLiftEnabled,
       inputBuffer: this.inputBuffer,
       isEntering: this.isEntering,
@@ -316,9 +338,12 @@ export class RpnEngine {
     this.cashFlowCounts = [];
     this.statistics = createEmptyStatistics();
     this.dateFormat = "mdy";
+    this.dateEntryActive = false;
     this.calendarResultActive = false;
     this.prefixMantissaActive = false;
     this.storage = Array(STORAGE_REGISTER_COUNT).fill(0);
+    this.percentOfTotalBase = null;
+    this.compoundOddPeriod = false;
     this.clearMemoryPrefix();
     this.endEntry();
   }
@@ -372,6 +397,12 @@ export class RpnEngine {
   enter(): void {
     this.endEntry();
     this.clearMemoryPrefix();
+    if (
+      this.dateEntryActive &&
+      parseEncodedDate(this.stack.x, this.dateFormat) !== null
+    ) {
+      this.decimalPlaces = DEFAULT_DISPLAY_DECIMALS;
+    }
     this.lift();
     this.stackLiftEnabled = false;
     this.financialStorePending = true;
@@ -690,6 +721,11 @@ export class RpnEngine {
       return;
     }
 
+    if (this.memoryPrefix === "sto") {
+      this.toggleCompoundOddPeriod();
+      return;
+    }
+
     this.clearMemoryPrefix();
 
     if (!this.isEntering) {
@@ -706,6 +742,14 @@ export class RpnEngine {
     this.exponentBuffer = "";
     this.exponentNegative = false;
     this.commitBufferToX();
+  }
+
+  /** STO EEX — toggle the C annunciator (compound odd-period interest). */
+  private toggleCompoundOddPeriod(): void {
+    this.endEntry();
+    this.clearMemoryPrefix();
+    this.compoundOddPeriod = !this.compoundOddPeriod;
+    this.stackLiftEnabled = true;
   }
 
   /** Delete the last typed digit while entering a number. */
@@ -740,6 +784,9 @@ export class RpnEngine {
     this.storage = Array(STORAGE_REGISTER_COUNT).fill(0);
     this.financial = { n: 0, i: 0, pv: 0, pmt: 0, fv: 0 };
     this.cashFlows = [];
+    this.percentOfTotalBase = null;
+    this.compoundOddPeriod = false;
+    this.dateEntryActive = false;
     this.endEntry();
     this.stackLiftEnabled = false;
   }
@@ -765,6 +812,7 @@ export class RpnEngine {
     this.clearMemoryPrefix();
     this.stack.x = 0;
     this.endEntry();
+    this.stackLiftEnabled = false;
   }
 
   pressTvmN(): void {
@@ -849,6 +897,11 @@ export class RpnEngine {
     }
 
     if (this.gShift) {
+      if (this.memoryPrefix === "rcl") {
+        this.recallCfj();
+        return;
+      }
+
       this.appendCfj();
       return;
     }
@@ -863,6 +916,11 @@ export class RpnEngine {
     }
 
     if (this.gShift) {
+      if (this.memoryPrefix === "rcl") {
+        this.recallNj();
+        return;
+      }
+
       this.setNj();
       return;
     }
@@ -888,6 +946,8 @@ export class RpnEngine {
     this.clearMemoryPrefix();
     this.cashFlows = [roundToInternalPrecision(this.stack.x)];
     this.cashFlowCounts = [1];
+    this.financial.n = 0;
+    this.syncCashFlowsToStorage();
     this.gShift = false;
     this.stackLiftEnabled = true;
   }
@@ -897,8 +957,21 @@ export class RpnEngine {
     this.clearMemoryPrefix();
     this.cashFlows.push(roundToInternalPrecision(this.stack.x));
     this.cashFlowCounts.push(1);
+    this.financial.n = this.cashFlows.length - 1;
+    this.syncCashFlowsToStorage();
     this.gShift = false;
     this.stackLiftEnabled = true;
+  }
+
+  /** Mirror CF₀…CFⱼ amounts into R0–R9 so RCL j recalls cash flows per the manual. */
+  private syncCashFlowsToStorage(): void {
+    for (
+      let index = 0;
+      index < this.cashFlows.length && index < STORAGE_REGISTER_COUNT;
+      index += 1
+    ) {
+      this.storage[index] = roundToInternalPrecision(this.cashFlows[index]);
+    }
   }
 
   private setNj(): void {
@@ -912,6 +985,35 @@ export class RpnEngine {
 
     const repetitions = Math.max(0, Math.trunc(this.stack.x));
     this.cashFlowCounts[this.cashFlowCounts.length - 1] = repetitions;
+    this.gShift = false;
+    this.stackLiftEnabled = true;
+  }
+
+  /** RCL g CFj — recall CFⱼ using j from the n register (0 = CF₀); then decrement j. */
+  private recallCfj(): void {
+    this.endEntry();
+    this.clearMemoryPrefix();
+
+    const index = Math.max(0, Math.trunc(this.financial.n));
+    this.stack.x =
+      index < this.cashFlows.length
+        ? roundToInternalPrecision(this.cashFlows[index])
+        : Number.NaN;
+    this.financial.n = Math.max(0, index - 1);
+    this.gShift = false;
+    this.stackLiftEnabled = true;
+  }
+
+  /** RCL g Nj — recall Nⱼ using j from the n register (0 = N₀ for CF₀). */
+  private recallNj(): void {
+    this.endEntry();
+    this.clearMemoryPrefix();
+
+    const index = Math.max(0, Math.trunc(this.financial.n));
+    this.stack.x =
+      index < this.cashFlowCounts.length
+        ? roundToInternalPrecision(this.cashFlowCounts[index])
+        : Number.NaN;
     this.gShift = false;
     this.stackLiftEnabled = true;
   }
@@ -1004,6 +1106,7 @@ export class RpnEngine {
     this.endEntry();
     this.clearMemoryPrefix();
     this.dateFormat = "dmy";
+    this.dateEntryActive = true;
     this.decimalPlaces = 6;
     this.clearCalendarResult();
     this.gShift = false;
@@ -1014,6 +1117,7 @@ export class RpnEngine {
     this.endEntry();
     this.clearMemoryPrefix();
     this.dateFormat = "mdy";
+    this.dateEntryActive = true;
     this.decimalPlaces = 6;
     this.clearCalendarResult();
     this.gShift = false;
@@ -1199,6 +1303,13 @@ export class RpnEngine {
 
   private recallFromRegister(register: number): void {
     this.endEntry();
+    if (this.cashFlows.length > 0 && register < this.cashFlows.length) {
+      this.stack.x = roundToInternalPrecision(this.cashFlows[register]);
+      this.clearMemoryPrefix();
+      this.stackLiftEnabled = true;
+      return;
+    }
+
     const statisticsValue = statisticsRegisterValue(register, this.statistics);
     this.stack.x =
       statisticsValue !== null && register >= 1 && register <= 6
@@ -1226,7 +1337,12 @@ export class RpnEngine {
       return;
     }
 
-    const result = solveTvm(key, this.financial, this.paymentMode);
+    const result = solveTvm(
+      key,
+      this.financial,
+      this.paymentMode,
+      this.compoundOddPeriod,
+    );
     if (!Number.isFinite(result)) {
       this.stack.x = Number.NaN;
       this.endEntry();
@@ -1503,7 +1619,24 @@ export class RpnEngine {
   }
 
   percentOfTotal(): void {
-    this.yPreservingOp((y, x) => (y === 0 ? Number.NaN : (100 * x) / y));
+    this.endEntry();
+    this.clearMemoryPrefix();
+    this.lastX = this.stack.x;
+
+    if (this.stack.y !== 0) {
+      this.percentOfTotalBase = this.stack.y;
+    }
+
+    const total = this.stack.y !== 0 ? this.stack.y : this.percentOfTotalBase;
+    const result =
+      total === null || total === 0
+        ? Number.NaN
+        : roundToInternalPrecision((100 * this.stack.x) / total);
+
+    this.stack.x = result;
+    this.clearShifts();
+    this.stackLiftEnabled = true;
+    this.financialStorePending = true;
   }
 
   ln(): void {
@@ -1541,6 +1674,7 @@ export class RpnEngine {
     this.financial.n = result.totalAmortizedPeriods;
     this.stack.x = result.totalInterest;
     this.stack.y = result.totalPrincipal;
+    this.stack.z = periodsToAmortize;
     this.fShift = false;
     this.stackLiftEnabled = true;
   }

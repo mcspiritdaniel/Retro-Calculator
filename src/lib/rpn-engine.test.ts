@@ -10,6 +10,16 @@ function logStackState(engine: RpnEngine, label: string): void {
   );
 }
 
+/** Keys a decimal number through the faceplate digit entry path. */
+function keyNumber(engine: RpnEngine, value: string): void {
+  const [whole, fraction] = value.split(".");
+  whole.split("").forEach((digit) => engine.pressDigit(digit));
+  if (fraction) {
+    engine.pressDecimal();
+    fraction.split("").forEach((digit) => engine.pressDigit(digit));
+  }
+}
+
 describe("RpnEngine — stack behavior", () => {
   it("starts with an empty stack and zeroed financial registers", () => {
     const engine = createRpnEngine();
@@ -884,6 +894,7 @@ describe("RpnEngine — cash flows and NPV", () => {
 
     expect(engine.cashFlows).toEqual([-1000]);
     expect(engine.cashFlowCounts).toEqual([1]);
+    expect(engine.financial.n).toBe(0);
     expect(engine.gShift).toBe(false);
   });
 
@@ -898,6 +909,7 @@ describe("RpnEngine — cash flows and NPV", () => {
 
     expect(engine.cashFlows).toEqual([-1000, 500]);
     expect(engine.cashFlowCounts).toEqual([1, 1]);
+    expect(engine.financial.n).toBe(1);
     expect(engine.gShift).toBe(false);
   });
 
@@ -964,6 +976,357 @@ describe("RpnEngine — cash flows and NPV", () => {
     engine.pressTvmPv();
 
     expect(engine.display).toBeCloseTo(-305.785124, 4);
+  });
+
+  it("recalls the number of CFj amounts with RCL n in the manual NPV example", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.clx();
+
+    pressNumber("80000");
+    engine.chs();
+    engine.gShift = true;
+    engine.pressTvmPv();
+
+    pressNumber("500");
+    engine.chs();
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("4500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("5500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("4500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("130000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+
+    expect(engine.financial.n).toBe(5);
+
+    engine.pressRcl();
+    engine.pressTvmN();
+
+    expect(engine.display).toBe(5);
+
+    pressNumber("13");
+    engine.pressTvmI();
+    engine.fShift = true;
+    engine.pressTvmPv();
+
+    expect(engine.display).toBeCloseTo(212.18, 2);
+  });
+
+  it("recalls grouped CFj amount and Nj after storing the index in n", () => {
+    const engine = createRpnEngine();
+    engine.setX(-1000);
+    engine.gShift = true;
+    engine.pressTvmPv();
+    engine.setX(400);
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    engine.setX(2);
+    engine.gShift = true;
+    engine.pressTvmFv();
+
+    expect(engine.financial.n).toBe(1);
+    expect(engine.cashFlows).toEqual([-1000, 400]);
+    expect(engine.cashFlowCounts).toEqual([1, 2]);
+
+    engine.pressRcl();
+    engine.pressTvmN();
+    expect(engine.display).toBe(1);
+
+    engine.setX(1);
+    engine.pressSto();
+    engine.pressTvmN();
+
+    engine.pressRcl();
+    engine.gShift = true;
+    engine.pressTvmFv();
+    expect(engine.display).toBe(2);
+
+    engine.setX(1);
+    engine.pressSto();
+    engine.pressTvmN();
+
+    engine.pressRcl();
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    expect(engine.display).toBe(400);
+  });
+
+  it("recalls each CFj and Nj in a multi-flow grouped example", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const storeCashFlowIndex = (index: number) => {
+      engine.setX(index);
+      engine.pressSto();
+      engine.pressTvmN();
+    };
+
+    const recallCfj = () => {
+      engine.pressRcl();
+      engine.gShift = true;
+      engine.pressTvmPmt();
+    };
+
+    const recallNj = () => {
+      engine.pressRcl();
+      engine.gShift = true;
+      engine.pressTvmFv();
+    };
+
+    const engine = createRpnEngine();
+    engine.setX(-1000);
+    engine.gShift = true;
+    engine.pressTvmPv();
+    pressNumber("500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("400");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("3");
+    engine.gShift = true;
+    engine.pressTvmFv();
+
+    expect(engine.financial.n).toBe(2);
+    expect(engine.cashFlowCounts).toEqual([1, 1, 3]);
+
+    engine.pressRcl();
+    engine.pressTvmN();
+    expect(engine.display).toBe(2);
+
+    storeCashFlowIndex(0);
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(-1000);
+
+    storeCashFlowIndex(1);
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(500);
+
+    storeCashFlowIndex(2);
+    recallNj();
+    expect(engine.display).toBe(3);
+    recallCfj();
+    expect(engine.display).toBe(400);
+  });
+
+  it("runs the manual grouped NPV example including RCL 5 and RCL g Nj", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.clx();
+
+    pressNumber("79000");
+    engine.chs();
+    engine.gShift = true;
+    engine.pressTvmPv();
+    pressNumber("14000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("11000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("10000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("3");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("9100");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("9000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("2");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("4500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("100000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+
+    engine.pressRcl();
+    engine.pressTvmN();
+    expect(engine.display).toBe(7);
+
+    pressNumber("13.5");
+    engine.pressTvmI();
+    engine.fShift = true;
+    engine.pressTvmPv();
+    expect(engine.display).toBeCloseTo(907.77, 2);
+
+    engine.pressRcl();
+    engine.pressDigit("5");
+    expect(engine.display).toBe(9000);
+
+    engine.pressDigit("5");
+    engine.pressTvmN();
+    expect(engine.display).toBe(5);
+    expect(engine.financial.n).toBe(5);
+
+    engine.pressRcl();
+    engine.gShift = true;
+    engine.pressTvmFv();
+    expect(engine.display).toBe(2);
+
+    engine.pressDigit("7");
+    engine.pressTvmN();
+    expect(engine.display).toBe(7);
+    expect(engine.financial.n).toBe(7);
+  });
+
+  it("reviews all cash flows sequentially with repeated RCL g Nj and RCL g CFj", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const recallNj = () => {
+      engine.pressRcl();
+      engine.gShift = true;
+      engine.pressTvmFv();
+    };
+
+    const recallCfj = () => {
+      engine.pressRcl();
+      engine.gShift = true;
+      engine.pressTvmPmt();
+    };
+
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.clx();
+
+    pressNumber("79000");
+    engine.chs();
+    engine.gShift = true;
+    engine.pressTvmPv();
+    pressNumber("14000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("11000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("10000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("3");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("9100");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("9000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("2");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("4500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("100000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+
+    expect(engine.financial.n).toBe(7);
+
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(100_000);
+    expect(engine.financial.n).toBe(6);
+
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(4500);
+    expect(engine.financial.n).toBe(5);
+
+    recallNj();
+    expect(engine.display).toBe(2);
+    recallCfj();
+    expect(engine.display).toBe(9000);
+    expect(engine.financial.n).toBe(4);
+
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(9100);
+    expect(engine.financial.n).toBe(3);
+
+    recallNj();
+    expect(engine.display).toBe(3);
+    recallCfj();
+    expect(engine.display).toBe(10_000);
+    expect(engine.financial.n).toBe(2);
+
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(11_000);
+    expect(engine.financial.n).toBe(1);
+
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(14_000);
+    expect(engine.financial.n).toBe(0);
+
+    recallNj();
+    expect(engine.display).toBe(1);
+    recallCfj();
+    expect(engine.display).toBe(-79_000);
+    expect(engine.financial.n).toBe(0);
+
+    engine.pressDigit("7");
+    engine.pressTvmN();
+    expect(engine.financial.n).toBe(7);
   });
 });
 
@@ -1160,6 +1523,54 @@ describe("RpnEngine — percentage keys (%, Δ%, %T) and LN", () => {
     expect(engine.getStack().y).toBe(7.95);
   });
 
+  it("runs the HP manual percent-of-total sales example end to end", () => {
+    const engine = createRpnEngine();
+
+    keyNumber(engine, "3.92");
+    engine.enter();
+    keyNumber(engine, "2.36");
+    engine.add();
+    keyNumber(engine, "1.67");
+    engine.add();
+    expect(engine.display).toBeCloseTo(7.95, 2);
+
+    keyNumber(engine, "2.36");
+    engine.pressPercentOfTotalKey();
+    expect(engine.display).toBeCloseTo(29.69, 2);
+
+    engine.clx();
+    keyNumber(engine, "3.92");
+    engine.pressPercentOfTotalKey();
+    expect(engine.display).toBeCloseTo(49.31, 2);
+
+    engine.clx();
+    keyNumber(engine, "1.67");
+    engine.pressPercentOfTotalKey();
+    expect(engine.display).toBeCloseTo(21.01, 2);
+  });
+
+  it("computes percent of total from a keyed total with ENTER", () => {
+    const engine = createRpnEngine();
+
+    keyNumber(engine, "7.95");
+    engine.enter();
+    keyNumber(engine, "2.36");
+    engine.pressPercentOfTotalKey();
+
+    expect(engine.display).toBeCloseTo(29.69, 2);
+  });
+
+  it("CLX disables stack lift so the next digit replaces X", () => {
+    const engine = createRpnEngine();
+    engine.setStack({ x: 29.69, y: 7.95, z: 0, t: 0 });
+    engine.stackLiftEnabled = true;
+
+    engine.clx();
+    keyNumber(engine, "3.92");
+
+    expect(engine.getStack()).toEqual({ x: 3.92, y: 7.95, z: 0, t: 0 });
+  });
+
   it("routes g + %T to natural log of X", () => {
     const engine = createRpnEngine();
     engine.setX(Math.E);
@@ -1219,6 +1630,7 @@ describe("RpnEngine — AMORT, INT, and RND", () => {
 
     expect(engine.display).toBeCloseTo(-552.08, 2);
     expect(engine.getStack().y).toBeCloseTo(-10.81, 2);
+    expect(engine.getStack().z).toBe(1);
     expect(engine.financial.pv).toBeCloseTo(49_989.19, 2);
     expect(engine.financial.n).toBe(1);
     expect(engine.fShift).toBe(false);
@@ -1290,6 +1702,58 @@ describe("RpnEngine — AMORT, INT, and RND", () => {
     engine.swapXy();
 
     expect(engine.display).toBeCloseTo(-10.81, 2);
+  });
+
+  it("shows the amortized period count after x↔y and two roll downs", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.swapXy();
+    pressNumber("13.25");
+    engine.gShift = true;
+    engine.pressTvmI();
+    pressNumber("50000");
+    engine.pressTvmPv();
+    pressNumber("573.35");
+    engine.chs();
+    engine.pressTvmPmt();
+    engine.gShift = true;
+    engine.pressDigit("8");
+    pressNumber("12");
+    engine.fShift = true;
+    engine.pressTvmN();
+
+    expect(engine.display).toBeCloseTo(-6608.89, 2);
+    expect(engine.getStack().z).toBe(12);
+
+    engine.swapXy();
+    expect(engine.display).toBeCloseTo(-271.31, 2);
+
+    engine.rollDown();
+    engine.rollDown();
+    expect(engine.display).toBe(12);
+    expect(engine.financial.pv).toBeCloseTo(49_728.69, 2);
+    expect(engine.financial.n).toBe(12);
+
+    pressNumber("12");
+    engine.fShift = true;
+    engine.pressTvmN();
+    engine.swapXy();
+    expect(engine.display).toBeCloseTo(-309.48, 2);
+    engine.rollDown();
+    engine.rollDown();
+    expect(engine.display).toBe(12);
+    expect(engine.financial.pv).toBeCloseTo(49_419.21, 2);
+    expect(engine.financial.n).toBe(24);
   });
 
   it("matches reference key sequences for AMORT, INT, and RND", () => {
@@ -1768,6 +2232,36 @@ describe("RpnEngine — calendar keystroke entry", () => {
     engine.swapXy();
     expect(engine.display).toBe(491);
   });
+
+  it("shows a committed M.DY date to hundredths on ENTER while keeping full precision", () => {
+    const engine = createRpnEngine();
+    engine.gShift = true;
+    engine.pressDigit("5");
+    typeNum(engine, "2.151981");
+    engine.pressEnter();
+
+    expect(engine.decimalPlaces).toBe(2);
+    expect(engine.display).toBeCloseTo(2.151981, 6);
+    expect(
+      formatLcdDisplay({
+        value: engine.display,
+        isEntering: false,
+        inputBuffer: "",
+        decimalPlaces: engine.decimalPlaces,
+      }),
+    ).toBe("2.15");
+
+    typeNum(engine, "3.011981");
+    expect(engine.decimalPlaces).toBe(2);
+    expect(
+      formatLcdDisplay({
+        value: engine.display,
+        isEntering: engine.getIsEntering(),
+        inputBuffer: engine.getInputBuffer(),
+        decimalPlaces: engine.decimalPlaces,
+      }),
+    ).toBe("3.011981");
+  });
 });
 
 describe("RpnEngine — factorial (n!)", () => {
@@ -2000,5 +2494,106 @@ describe("RpnEngine — bond (PRICE and YTM)", () => {
 
     expect(engine.display).toBeCloseTo(8.15, 2);
     expect(engine.financial.i).toBeCloseTo(8.15, 2);
+  });
+});
+
+describe("RpnEngine — odd-period compound interest (STO EEX)", () => {
+  function typeNum(engine: RpnEngine, s: string): void {
+    for (const ch of s) {
+      if (ch === ".") {
+        engine.pressDecimal();
+      } else {
+        engine.pressDigit(ch);
+      }
+    }
+  }
+
+  it("toggles the C annunciator with STO then EEX without entering scientific mode", () => {
+    const engine = createRpnEngine();
+
+    engine.pressSto();
+    engine.pressEex();
+
+    expect(engine.compoundOddPeriod).toBe(true);
+    expect(engine.getShowCompoundOddAnnunciator()).toBe(true);
+    expect(engine.getIsEnteringExponent()).toBe(false);
+    expect(engine.getMemoryPrefix()).toBeNull();
+
+    engine.pressSto();
+    engine.pressEex();
+
+    expect(engine.compoundOddPeriod).toBe(false);
+  });
+
+  it("still enters scientific notation when EEX is pressed without STO", () => {
+    const engine = createRpnEngine();
+    engine.setX(1.5);
+
+    engine.pressEex();
+    engine.pressDigit("3");
+
+    expect(engine.getIsEnteringExponent()).toBe(true);
+    expect(engine.compoundOddPeriod).toBe(false);
+  });
+
+  it("clears the C annunciator on REG (f CLx)", () => {
+    const engine = createRpnEngine();
+    engine.compoundOddPeriod = true;
+    engine.fShift = true;
+
+    engine.clx();
+
+    expect(engine.compoundOddPeriod).toBe(false);
+  });
+
+  it("runs the HP manual odd-days loan example end to end", () => {
+    const engine = createRpnEngine();
+
+    engine.fShift = true;
+    engine.swapXy();
+
+    engine.gShift = true;
+    engine.pressDigit("5");
+
+    engine.gShift = true;
+    engine.pressDigit("8");
+
+    engine.pressSto();
+    engine.pressEex();
+    expect(engine.compoundOddPeriod).toBe(true);
+
+    typeNum(engine, "2.151981");
+    engine.pressEnter();
+    typeNum(engine, "3.011981");
+
+    engine.gShift = true;
+    engine.pressEex();
+    expect(engine.display).toBe(14);
+    expect(engine.getStack().y).toBe(16);
+
+    engine.swapXy();
+    expect(engine.display).toBe(16);
+
+    typeNum(engine, "30");
+    engine.divide();
+    expect(engine.display).toBeCloseTo(0.53, 2);
+
+    typeNum(engine, "36");
+    engine.add();
+    expect(engine.display).toBeCloseTo(36.53, 2);
+    engine.pressTvmN();
+    expect(engine.financial.n).toBeCloseTo(36.53, 2);
+
+    typeNum(engine, "15");
+    engine.gShift = true;
+    engine.pressTvmI();
+    expect(engine.financial.i).toBeCloseTo(1.25, 2);
+
+    typeNum(engine, "4500");
+    engine.pressTvmPv();
+    expect(engine.financial.pv).toBe(4500);
+
+    engine.pressTvmPmt();
+    expect(engine.display).toBeCloseTo(-157.03, 2);
   });
 });

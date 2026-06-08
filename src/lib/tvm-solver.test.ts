@@ -31,3 +31,27 @@ describe("tvm-solver — BEG payment mode", () => {
     expect(solveTvm("n", logCabin, "end")).toBe(328);
   });
 });
+
+describe("tvm-solver — odd-period loans", () => {
+  const oddDaysLoan = { n: 36.53, i: 1.25, pv: 4500, pmt: 0, fv: 0 };
+
+  it("ignores the C flag when n is an integer", () => {
+    const loan = { n: 36, i: 1.25, pv: 4500, pmt: 0, fv: 0 };
+    const endPmt = solvePmt(loan, "end", false);
+
+    expect(endPmt).toBeCloseTo(-155.99, 2);
+    expect(solvePmt(loan, "end", true)).toBe(endPmt);
+  });
+
+  it("uses simple interest on the odd-period fraction when C is off", () => {
+    expect(solvePmt(oddDaysLoan, "end", false)).toBeCloseTo(-157.03, 1);
+  });
+
+  it("matches the HP manual with compound odd-period interest (C on)", () => {
+    expect(solvePmt(oddDaysLoan, "end", true)).toBeCloseTo(-157.03, 1);
+  });
+
+  it("differs from treating fractional n as a full annuity period count", () => {
+    expect(solvePmt(oddDaysLoan, "end", true)).not.toBeCloseTo(-154.19, 1);
+  });
+});

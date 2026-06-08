@@ -129,6 +129,10 @@ export default function RegistersPanel({ snapshot }: RegistersPanelProps) {
               value={snapshot.paymentMode === "beg" ? "BEG" : "END"}
             />
             <RegisterRow
+              label="Odd int."
+              value={snapshot.compoundOddPeriod ? "C (compound)" : "Simple"}
+            />
+            <RegisterRow
               label="Dates"
               value={snapshot.dateFormat === "dmy" ? "D.MY" : "M.DY"}
             />

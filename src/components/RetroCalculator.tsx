@@ -649,6 +649,8 @@ const LCD_F_LEFT = `calc((100% - ${9 * GRID_COLUMN_GAP_PX}px) / 10 * 3 + ${2.5 *
 const LCD_G_LEFT = `calc(${GRID_COL4_CENTER} - (100% - ${9 * GRID_COLUMN_GAP_PX}px) / 10 * 0.08)`;
 /** BEGIN annunciator: just right of column 4 center on the faceplate. */
 const LCD_BEGIN_LEFT = `calc(${GRID_COL4_CENTER} + (100% - ${9 * GRID_COLUMN_GAP_PX}px) / 10 * 0.12)`;
+/** C annunciator (odd-period compound interest) at the right edge of column 6. */
+const LCD_C_LEFT = `calc((100% - ${9 * GRID_COLUMN_GAP_PX}px) / 10 * 6 + ${5 * GRID_COLUMN_GAP_PX}px - 1.25ch)`;
 /** D.MY annunciator between columns 5 and 6. */
 const LCD_DMY_LEFT = `calc((100% - ${9 * GRID_COLUMN_GAP_PX}px) / 10 * 5 + ${4.5 * GRID_COLUMN_GAP_PX}px)`;
 /** Half-column inset on right edge to column 7 midpoint (LCD spans columns 3–7). */
@@ -857,6 +859,7 @@ function readLcdView(engine: RpnEngine) {
         )
       : null,
     showBegin: engine.paymentMode === "beg",
+    showCompoundOdd: engine.getShowCompoundOddAnnunciator(),
     showDmy: engine.getShowDmyAnnunciator(),
     showF: engine.fShift,
     showG: engine.gShift,
@@ -1126,6 +1129,7 @@ export default function RetroCalculator() {
             (lcdView.showF ||
               lcdView.showG ||
               lcdView.showBegin ||
+              lcdView.showCompoundOdd ||
               lcdView.showDmy) ? (
               <>
                 {lcdView.showF ? (
@@ -1169,6 +1173,19 @@ export default function RetroCalculator() {
                     aria-hidden="true"
                   >
                     BEGIN
+                  </span>
+                ) : null}
+                {lcdView.showCompoundOdd ? (
+                  <span
+                    className="lcd-status-annunciator lcd-status-annunciator--begin pointer-events-none absolute z-[2]"
+                    style={{
+                      left: LCD_C_LEFT,
+                      bottom: "4px",
+                      color: COLORS.lcdText,
+                    }}
+                    aria-hidden="true"
+                  >
+                    C
                   </span>
                 ) : null}
                 {lcdView.showDmy ? (

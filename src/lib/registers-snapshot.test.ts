@@ -13,6 +13,7 @@ describe("Registers pane snapshot contract", () => {
     expect(snapshot.gShift).toBe(false);
     expect(snapshot.decimalPlaces).toBe(2);
     expect(snapshot.paymentMode).toBe("end");
+    expect(snapshot.compoundOddPeriod).toBe(false);
     expect(snapshot.dateFormat).toBe("mdy");
     expect(snapshot.memoryPrefix).toBeNull();
     expect(snapshot.cashFlows).toEqual([]);

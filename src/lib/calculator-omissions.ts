@@ -58,6 +58,11 @@ export const CALCULATOR_OMISSIONS: OmissionSection[] = [
         detail:
           "When the exact period count is fractional, n is rounded up to the next whole number. That is the total number of payments — full periods plus one smaller final payment. PMT and the other registers are not adjusted automatically; use FV or AMORT to work out the last payment if needed.",
       },
+      {
+        title: "Odd-period loans",
+        detail:
+          "Non-integer n uses HP odd-period TVM (INT(n) full periods plus a fractional odd period). STO EEX toggles the C annunciator for compound vs. simple interest on that fraction.",
+      },
     ],
   },
   {
