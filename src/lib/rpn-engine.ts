@@ -984,7 +984,11 @@ export class RpnEngine {
     }
 
     const repetitions = Math.max(0, Math.trunc(this.stack.x));
-    this.cashFlowCounts[this.cashFlowCounts.length - 1] = repetitions;
+    const index = Math.max(
+      0,
+      Math.min(Math.trunc(this.financial.n), this.cashFlowCounts.length - 1),
+    );
+    this.cashFlowCounts[index] = repetitions;
     this.gShift = false;
     this.stackLiftEnabled = true;
   }
@@ -1018,14 +1022,30 @@ export class RpnEngine {
     this.stackLiftEnabled = true;
   }
 
+  /** CF₀…CFⱼ included in NPV/IRR — j is the value in n (CFⱼ count, excluding CF₀). */
+  private activeCashFlowRegisters(): {
+    flows: readonly number[];
+    counts: readonly number[];
+  } {
+    if (this.cashFlows.length === 0) {
+      return { flows: [], counts: [] };
+    }
+
+    const endIndex = Math.min(
+      this.cashFlows.length,
+      Math.max(0, Math.trunc(this.financial.n)) + 1,
+    );
+    return {
+      flows: this.cashFlows.slice(0, endIndex),
+      counts: this.cashFlowCounts.slice(0, endIndex),
+    };
+  }
+
   private computeNpv(): void {
     this.endEntry();
     this.clearMemoryPrefix();
-    const result = computeNpvFromRegisters(
-      this.cashFlows,
-      this.cashFlowCounts,
-      this.financial.i,
-    );
+    const { flows, counts } = this.activeCashFlowRegisters();
+    const result = computeNpvFromRegisters(flows, counts, this.financial.i);
     this.stack.x = Number.isFinite(result)
       ? roundToInternalPrecision(result)
       : Number.NaN;
@@ -1036,11 +1056,8 @@ export class RpnEngine {
   private computeIrr(): void {
     this.endEntry();
     this.clearMemoryPrefix();
-    const result = computeIrr(
-      this.cashFlows,
-      this.cashFlowCounts,
-      this.financial.i,
-    );
+    const { flows, counts } = this.activeCashFlowRegisters();
+    const result = computeIrr(flows, counts, this.financial.i);
 
     if (!Number.isFinite(result)) {
       this.stack.x = Number.NaN;

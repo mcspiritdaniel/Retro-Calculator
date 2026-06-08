@@ -29,7 +29,7 @@ const KEY_NOTES: Record<string, string> = {
   "g CFo": "Clear cash-flow registers; store CF₀.",
   "g CFj": "Store next cash-flow amount.",
   "RCL g CFj": "Recall CFⱼ at index j in n; decrements j (sequential review).",
-  "g Nj": "Store repeat count for last cash flow.",
+  "g Nj": "Store repeat count for CFⱼ — j is in n (default: latest flow).",
   "RCL g Nj": "Recall Nⱼ — store cash-flow index j in n first.",
   "g DATE": "Same as g CHS — calendar date from days and date.",
   "g BEG": "Payment mode: beginning of period.",

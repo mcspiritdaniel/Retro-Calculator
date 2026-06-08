@@ -916,6 +916,8 @@ describe("RpnEngine — cash flows and NPV", () => {
   it("computes NPV when f then PV is pressed", () => {
     const engine = createRpnEngine();
     engine.cashFlows = [-1000, 500, 600];
+    engine.cashFlowCounts = [1, 1, 1];
+    engine.financial.n = 2;
     engine.financial.i = 10;
     engine.fShift = true;
 
@@ -941,6 +943,7 @@ describe("RpnEngine — cash flows and NPV", () => {
     const engine = createRpnEngine();
     engine.cashFlows = [-1000, 500, 600];
     engine.cashFlowCounts = [1, 1, 1];
+    engine.financial.n = 2;
     engine.financial.i = 13;
     engine.fShift = true;
 
@@ -956,6 +959,7 @@ describe("RpnEngine — cash flows and NPV", () => {
     const engine = createRpnEngine();
     engine.cashFlows = [-1000, 400];
     engine.cashFlowCounts = [1, 1];
+    engine.financial.n = 1;
     engine.setX(2);
     engine.gShift = true;
 
@@ -970,6 +974,7 @@ describe("RpnEngine — cash flows and NPV", () => {
     const engine = createRpnEngine();
     engine.cashFlows = [-1000, 400];
     engine.cashFlowCounts = [1, 2];
+    engine.financial.n = 1;
     engine.financial.i = 10;
     engine.fShift = true;
 
@@ -1389,6 +1394,81 @@ describe("RpnEngine — cash flows and NPV", () => {
     engine.fShift = true;
     engine.pressTvmPv();
     expect(engine.display).toBeCloseTo(-644.75, 2);
+  });
+
+  it("modifies N₅ with 5 n and 4 g Nj then recalculates NPV per manual Example 2", () => {
+    const pressNumber = (value: string) => {
+      for (const character of value) {
+        if (character === ".") {
+          engine.pressDecimal();
+        } else {
+          engine.pressDigit(character);
+        }
+      }
+    };
+
+    const engine = createRpnEngine();
+    engine.fShift = true;
+    engine.clx();
+
+    pressNumber("79000");
+    engine.chs();
+    engine.gShift = true;
+    engine.pressTvmPv();
+    pressNumber("14000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("11000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("10000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("3");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("9100");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("9000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("2");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    pressNumber("4500");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+    pressNumber("100000");
+    engine.gShift = true;
+    engine.pressTvmPmt();
+
+    pressNumber("9000");
+    engine.pressSto();
+    engine.pressDigit("2");
+    expect(engine.cashFlows[2]).toBe(9000);
+
+    expect(engine.cashFlowCounts[5]).toBe(2);
+
+    pressNumber("5");
+    engine.pressTvmN();
+    expect(engine.financial.n).toBe(5);
+
+    pressNumber("4");
+    engine.gShift = true;
+    engine.pressTvmFv();
+    expect(engine.display).toBe(4);
+    expect(engine.cashFlowCounts[5]).toBe(4);
+
+    pressNumber("7");
+    engine.pressTvmN();
+    expect(engine.financial.n).toBe(7);
+
+    pressNumber("13.5");
+    engine.pressTvmI();
+    engine.fShift = true;
+    engine.pressTvmPv();
+    expect(engine.display).toBeCloseTo(-1857.21, 2);
   });
 });
 
