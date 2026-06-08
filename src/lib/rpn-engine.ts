@@ -59,6 +59,8 @@ export type { FinancialRegisters, StatisticsRegisters, DateFormat };
 
 export type MemoryPrefix = "sto" | "rcl";
 
+type StoragePendingOp = "add" | "subtract";
+
 export type StackRegisters = {
   x: number;
   y: number;
@@ -196,6 +198,9 @@ export class RpnEngine {
 
   /** Set after STO or RCL; next digit 0–9 completes the operation. */
   private memoryPrefix: MemoryPrefix | null = null;
+
+  /** After STO + or STO −; next digit completes register arithmetic. */
+  private storagePendingOp: StoragePendingOp | null = null;
 
   /**
    * When true, the next TVM key stores X into that register instead of solving.
@@ -493,6 +498,7 @@ export class RpnEngine {
   pressSto(): void {
     this.endEntry();
     this.memoryPrefix = "sto";
+    this.storagePendingOp = null;
   }
 
   /**
@@ -572,7 +578,10 @@ export class RpnEngine {
     }
 
     if (this.memoryPrefix === "sto") {
-      this.storeToRegister(register);
+      this.modifyStorageRegister(
+        register,
+        this.storagePendingOp ?? "store",
+      );
       return;
     }
 
@@ -1062,6 +1071,7 @@ export class RpnEngine {
 
   private clearMemoryPrefix(): void {
     this.memoryPrefix = null;
+    this.storagePendingOp = null;
   }
 
   private clearStatistics(): void {
@@ -1159,9 +1169,18 @@ export class RpnEngine {
     this.stackLiftEnabled = true;
   }
 
-  private storeToRegister(register: number): void {
+  private modifyStorageRegister(
+    register: number,
+    op: "store" | StoragePendingOp,
+  ): void {
     this.endEntry();
-    const value = roundToInternalPrecision(this.stack.x);
+    const x = roundToInternalPrecision(this.stack.x);
+    const value =
+      op === "store"
+        ? x
+        : op === "add"
+          ? roundToInternalPrecision(this.storage[register] + x)
+          : roundToInternalPrecision(this.storage[register] - x);
     this.storage[register] = value;
     if (register >= 1 && register <= 6) {
       this.statistics = applyStatisticsRegisterValue(
@@ -1172,6 +1191,10 @@ export class RpnEngine {
     }
     this.clearMemoryPrefix();
     this.stackLiftEnabled = true;
+  }
+
+  private storeToRegister(register: number): void {
+    this.modifyStorageRegister(register, "store");
   }
 
   private recallFromRegister(register: number): void {
@@ -1619,11 +1642,23 @@ export class RpnEngine {
 
   /** Y + X */
   add(): void {
+    if (this.memoryPrefix === "sto") {
+      this.endEntry();
+      this.storagePendingOp = "add";
+      return;
+    }
+
     this.binaryOp((y, x) => y + x);
   }
 
   /** Y − X */
   subtract(): void {
+    if (this.memoryPrefix === "sto") {
+      this.endEntry();
+      this.storagePendingOp = "subtract";
+      return;
+    }
+
     this.binaryOp((y, x) => y - x);
   }
 

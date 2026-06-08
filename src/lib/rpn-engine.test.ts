@@ -520,6 +520,78 @@ describe("RpnEngine — STO and RCL (registers 0–9)", () => {
     expect(engine.display).toBe(3);
   });
 
+  it("subtracts from a storage register with STO − n without changing X", () => {
+    const engine = createRpnEngine();
+    engine.setX(58.33);
+    engine.pressSto();
+    engine.pressDigit("0");
+
+    engine.setX(22.95);
+    engine.pressSto();
+    engine.pressSubtractKey();
+    engine.pressDigit("0");
+
+    expect(engine.getStorage()[0]).toBeCloseTo(35.38, 2);
+    expect(engine.display).toBeCloseTo(22.95, 2);
+    expect(engine.getMemoryPrefix()).toBeNull();
+  });
+
+  it("adds to a storage register with STO + n without changing X", () => {
+    const engine = createRpnEngine();
+    engine.setX(100);
+    engine.pressSto();
+    engine.pressDigit("0");
+
+    engine.setX(25);
+    engine.pressSto();
+    engine.add();
+    engine.pressDigit("0");
+
+    expect(engine.getStorage()[0]).toBeCloseTo(125, 2);
+    expect(engine.display).toBeCloseTo(25, 2);
+  });
+
+  it("runs the HP manual checking-account storage arithmetic example", () => {
+    const engine = createRpnEngine();
+
+    engine.pressDigit("5");
+    engine.pressDigit("8");
+    engine.pressDecimal();
+    engine.pressDigit("3");
+    engine.pressDigit("3");
+    engine.pressSto();
+    engine.pressDigit("0");
+    expect(engine.getStorage()[0]).toBeCloseTo(58.33, 2);
+
+    for (const check of ["22.95", "13.70", "10.14"]) {
+      const [whole, frac = ""] = check.split(".");
+      for (const digit of whole) {
+        engine.pressDigit(digit);
+      }
+      engine.pressDecimal();
+      for (const digit of frac) {
+        engine.pressDigit(digit);
+      }
+      engine.pressSto();
+      engine.pressSubtractKey();
+      engine.pressDigit("0");
+    }
+
+    engine.pressDigit("1");
+    engine.pressDigit("0");
+    engine.pressDigit("5");
+    engine.pressDigit("3");
+    engine.pressSto();
+    engine.add();
+    engine.pressDigit("0");
+
+    engine.pressRcl();
+    engine.pressDigit("0");
+
+    expect(engine.getStorage()[0]).toBeCloseTo(1064.54, 2);
+    expect(engine.display).toBeCloseTo(1064.54, 2);
+  });
+
   it("clears storage on reset", () => {
     const engine = createRpnEngine();
     engine.setX(12);
