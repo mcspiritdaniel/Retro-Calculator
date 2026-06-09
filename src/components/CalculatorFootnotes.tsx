@@ -11,7 +11,7 @@ export default function CalculatorFootnotes() {
           About this web calculator
         </h2>
         <p className="mt-0.5 text-xs text-[#666]">
-          Scope, omissions, and independent-project notes.
+          Disclaimer, behavior notes, and known omissions.
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-xs leading-relaxed text-[#555]">

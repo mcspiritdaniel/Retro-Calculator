@@ -8,7 +8,7 @@ export type OmissionSection = {
   items: OmissionItem[];
 };
 
-/** Features absent or intentionally different in this web calculator. */
+/** About-panel copy: omissions, behavior notes, and project disclaimer. */
 export const CALCULATOR_OMISSIONS: OmissionSection[] = [
   {
     heading: "Independent project",
@@ -31,7 +31,42 @@ export const CALCULATOR_OMISSIONS: OmissionSection[] = [
       {
         title: "Population standard deviation",
         detail:
-          "Sample sx and sy (g .) are supported. Population σ is not wired — f + digit sets FIX display format on classic layouts.",
+          "Sample sx and sy (g .) are supported. Population σ is not available.",
+      },
+    ],
+  },
+  {
+    heading: "Display notes",
+    items: [
+      {
+        title: "FIX and SCI",
+        detail:
+          "f + 0–9 sets fixed decimal places (FIX). f + . selects scientific notation (SCI) for committed values on the LCD.",
+      },
+      {
+        title: "Auto-scientific",
+        detail:
+          "In FIX mode, very large or very small values still switch to scientific notation when they cannot fit the display.",
+      },
+    ],
+  },
+  {
+    heading: "Cash-flow notes",
+    items: [
+      {
+        title: "Registers R0–R9",
+        detail:
+          "After cash flows are entered, R0–R9 hold CF₀–CFⱼ amounts. RCL 1–6 recalls Σ statistics only when no cash flows are loaded.",
+      },
+      {
+        title: "Editing flows",
+        detail:
+          "STO j updates CFⱼ. Store j in n, then enter a count and press g Nj to change Nⱼ. Reset n to the total CFⱼ count before f NPV or f IRR.",
+      },
+      {
+        title: "Sequential review",
+        detail:
+          "Repeated RCL g Nj and RCL g CFj walks from the current j down to CF₀; RCL g CFj decrements j. Restore n when finished.",
       },
     ],
   },

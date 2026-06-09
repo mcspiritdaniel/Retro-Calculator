@@ -1,4 +1,4 @@
-import { formatLcdDisplay } from "./lcd-format";
+import { formatLcdDisplay, type LcdDisplayFormat } from "./lcd-format";
 import { describeKeystroke } from "./key-descriptions";
 import type { MemoryPrefix, RpnEngineSnapshot, StackRegisters } from "./rpn-engine";
 
@@ -43,6 +43,7 @@ export function buildKeyLabel(
 export function formatLogStackValue(
   value: number,
   decimalPlaces: number,
+  displayFormat: LcdDisplayFormat = "fix",
 ): string {
   if (!Number.isFinite(value)) {
     return "Error";
@@ -53,6 +54,7 @@ export function formatLogStackValue(
     isEntering: false,
     inputBuffer: "",
     decimalPlaces,
+    displayFormat,
   }).trim();
 }
 

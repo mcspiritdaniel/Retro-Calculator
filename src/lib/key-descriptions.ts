@@ -25,6 +25,7 @@ const KEY_NOTES: Record<string, string> = {
   "f INT": "Simple interest (360-day year) in X; |PV| in Y for total with +; R↓ then x↔y for 365-day.",
   "f NPV": "Net present value from stored cash flows.",
   "f IRR": "Internal rate of return from stored cash flows.",
+  "f .": "SCI — scientific notation display format.",
   "f RND": "Round X to current display format.",
   "g CFo": "Clear cash-flow registers; store CF₀.",
   "g CFj": "Store next cash-flow amount.",

@@ -793,6 +793,40 @@ describe("RpnEngine — TVM solvers", () => {
   });
 });
 
+describe("RpnEngine — display format (f + . and f + digit)", () => {
+  it("sets SCI display format when f is active and . is pressed", () => {
+    const engine = createRpnEngine();
+    engine.setX(123.45);
+    engine.fShift = true;
+
+    engine.pressDecimal();
+
+    expect(engine.displayFormat).toBe("sci");
+    expect(engine.fShift).toBe(false);
+    expect(engine.getIsEntering()).toBe(false);
+    expect(
+      formatLcdDisplay({
+        value: engine.display,
+        isEntering: false,
+        inputBuffer: "",
+        decimalPlaces: engine.decimalPlaces,
+        displayFormat: engine.displayFormat,
+      }),
+    ).toBe("1.234500 02");
+  });
+
+  it("returns to FIX when f and a digit set decimal places", () => {
+    const engine = createRpnEngine();
+    engine.displayFormat = "sci";
+    engine.fShift = true;
+
+    engine.pressDigit("2");
+
+    expect(engine.displayFormat).toBe("fix");
+    expect(engine.decimalPlaces).toBe(2);
+  });
+});
+
 describe("RpnEngine — display precision (f + digit)", () => {
   it("sets decimalPlaces when f is active and a digit is pressed", () => {
     const engine = createRpnEngine();

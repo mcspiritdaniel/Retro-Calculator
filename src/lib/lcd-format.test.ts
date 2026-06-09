@@ -3,6 +3,7 @@ import {
   DISPLAY_DIGIT_COUNT,
   formatFullMantissa,
   formatLcdDisplay,
+  getLcdScientificLayout,
   formatLcdEntry,
   getLcdScientificEntryParts,
   shouldUseScientificNotation,
@@ -57,6 +58,34 @@ describe("formatLcdDisplay — standard notation", () => {
 });
 
 describe("formatLcdDisplay — scientific notation", () => {
+  it("forces scientific notation for all values in SCI display mode", () => {
+    expect(
+      formatLcdDisplay({
+        value: 123.45,
+        isEntering: false,
+        inputBuffer: "",
+        decimalPlaces: 2,
+        displayFormat: "sci",
+      }),
+    ).toBe("1.234500 02");
+  });
+
+  it("splits committed SCI values into mantissa and exponent for LCD layout", () => {
+    expect(
+      getLcdScientificLayout({
+        value: 123.45,
+        isEntering: false,
+        inputBuffer: "",
+        decimalPlaces: 2,
+        displayFormat: "sci",
+      }),
+    ).toEqual({
+      mantissa: "1.234500",
+      exponentSign: " ",
+      exponent: "02",
+    });
+  });
+
   it("uses scientific notation below the millionths place", () => {
     expect(
       formatLcdDisplay({

@@ -2,16 +2,19 @@
 
 import { useEffect, useRef } from "react";
 import { formatLogStackValue, type ActivityLogEntry } from "@/lib/activity-log";
+import type { LcdDisplayFormat } from "@/lib/lcd-format";
 
 type ActivityLogProps = {
   entries: ActivityLogEntry[];
   decimalPlaces: number;
+  displayFormat: LcdDisplayFormat;
   onClear: () => void;
 };
 
 export default function ActivityLog({
   entries,
   decimalPlaces,
+  displayFormat,
   onClear,
 }: ActivityLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -84,10 +87,10 @@ export default function ActivityLog({
                     <span className="text-[#555]">X={entry.display}</span>
                   </div>
                   <div className="mt-1 text-[11px] text-[#666]">
-                    T={formatLogStackValue(entry.stack.t, decimalPlaces)}{" "}
-                    Z={formatLogStackValue(entry.stack.z, decimalPlaces)}{" "}
-                    Y={formatLogStackValue(entry.stack.y, decimalPlaces)}{" "}
-                    X={formatLogStackValue(entry.stack.x, decimalPlaces)}
+                    T={formatLogStackValue(entry.stack.t, decimalPlaces, displayFormat)}{" "}
+                    Z={formatLogStackValue(entry.stack.z, decimalPlaces, displayFormat)}{" "}
+                    Y={formatLogStackValue(entry.stack.y, decimalPlaces, displayFormat)}{" "}
+                    X={formatLogStackValue(entry.stack.x, decimalPlaces, displayFormat)}
                   </div>
                   {entry.note ? (
                     <p className="mt-1.5 text-[11px] font-sans text-[#444]">

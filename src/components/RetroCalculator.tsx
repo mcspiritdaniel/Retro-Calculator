@@ -21,7 +21,11 @@ import {
   createActivityLogEntry,
   type ActivityLogEntry,
 } from "@/lib/activity-log";
-import { formatLcdDisplay, getLcdScientificEntryParts, type LcdScientificEntryParts } from "@/lib/lcd-format";
+import {
+  formatLcdDisplay,
+  getLcdScientificLayout,
+  type LcdScientificEntryParts,
+} from "@/lib/lcd-format";
 import { createRpnEngine, type RpnEngine, type RpnEngineSnapshot } from "@/lib/rpn-engine";
 
 const COLORS = {
@@ -837,27 +841,26 @@ function readLcdView(engine: RpnEngine) {
   const isEnteringExponent = engine.getIsEnteringExponent();
   const calendarText = engine.getCalendarDisplayText();
   const prefixMantissaText = engine.getPrefixMantissaDisplayText();
+  const lcdInput = {
+    value: engine.display,
+    isEntering: engine.getIsEntering(),
+    inputBuffer: engine.getInputBuffer(),
+    decimalPlaces: engine.decimalPlaces,
+    displayFormat: engine.displayFormat,
+    isEnteringExponent,
+    exponentBuffer: engine.getExponentBuffer(),
+    exponentNegative: engine.getExponentNegative(),
+  };
 
   return {
     text:
       calendarText ??
       prefixMantissaText ??
-      formatLcdDisplay({
-        value: engine.display,
-        isEntering: engine.getIsEntering(),
-        inputBuffer: engine.getInputBuffer(),
-        decimalPlaces: engine.decimalPlaces,
-        isEnteringExponent,
-        exponentBuffer: engine.getExponentBuffer(),
-        exponentNegative: engine.getExponentNegative(),
-      }),
-    scientificEntry: isEnteringExponent
-      ? getLcdScientificEntryParts(
-          engine.getInputBuffer(),
-          engine.getExponentBuffer(),
-          engine.getExponentNegative(),
-        )
-      : null,
+      formatLcdDisplay(lcdInput),
+    scientificEntry:
+      calendarText || prefixMantissaText
+        ? null
+        : getLcdScientificLayout(lcdInput),
     showBegin: engine.paymentMode === "beg",
     showCompoundOdd: engine.getShowCompoundOddAnnunciator(),
     showDmy: engine.getShowDmyAnnunciator(),
@@ -1573,7 +1576,7 @@ export default function RetroCalculator() {
                 </KeyStack>
               </KeyCol>
               <KeyCol col={8} row={2}>
-                <KeyStack blueBottom="s">
+                <KeyStack goldTop="SCI" blueBottom="s">
                   <CalcKey
                     labelHtml="."
                     ariaLabel="."
@@ -1621,6 +1624,7 @@ export default function RetroCalculator() {
             <ActivityLog
               entries={logEntries}
               decimalPlaces={engine.decimalPlaces}
+              displayFormat={engine.displayFormat}
               onClear={clearLog}
             />
           </div>
@@ -1656,6 +1660,7 @@ export default function RetroCalculator() {
               <ActivityLog
                 entries={logEntries}
                 decimalPlaces={engine.decimalPlaces}
+                displayFormat={engine.displayFormat}
                 onClear={clearLog}
               />
             ) : null}

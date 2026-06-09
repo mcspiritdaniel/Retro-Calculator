@@ -6,6 +6,8 @@ export const MAX_DISPLAY_DECIMALS = 9;
 
 export const DEFAULT_DISPLAY_DECIMALS = 2;
 
+export type LcdDisplayFormat = "fix" | "sci";
+
 /** Scientific notation: one leading digit, six after the decimal. */
 export const SCIENTIFIC_MANTISSA_DIGITS = 7;
 
@@ -16,6 +18,7 @@ export type LcdDisplayInput = {
   isEntering: boolean;
   inputBuffer: string;
   decimalPlaces?: number;
+  displayFormat?: LcdDisplayFormat;
   isEnteringExponent?: boolean;
   exponentBuffer?: string;
   exponentNegative?: boolean;
@@ -57,12 +60,20 @@ function formatStandardFixed(value: number, decimalPlaces: number): string {
   return `${negative ? "-" : ""}${grouped}.${frac}`;
 }
 
-function formatScientific(value: number): string {
+/** Mantissa and exponent fields for committed scientific display (f . / auto-SCI). */
+export function getLcdScientificDisplayParts(
+  value: number,
+): LcdScientificEntryParts {
   const negative = value < 0;
   const abs = Math.abs(value);
+  const zeroMantissa = (0).toFixed(SCIENTIFIC_MANTISSA_DIGITS - 1);
 
   if (abs === 0) {
-    return formatStandardFixed(0, DEFAULT_DISPLAY_DECIMALS);
+    return {
+      mantissa: `${negative ? "-" : ""}${zeroMantissa}`,
+      exponentSign: " ",
+      exponent: "00",
+    };
   }
 
   let exponent = Math.floor(Math.log10(abs));
@@ -79,14 +90,21 @@ function formatScientific(value: number): string {
     Math.min(10 ** SCIENTIFIC_EXPONENT_DIGITS - 1, exponent),
   );
 
-  const mantissaFractionDigits = SCIENTIFIC_MANTISSA_DIGITS - 1;
-  const mantissaText = mantissa.toFixed(mantissaFractionDigits);
-  const exponentSign = exponent < 0 ? "-" : " ";
-  const exponentText = Math.abs(exponent)
-    .toString()
-    .padStart(SCIENTIFIC_EXPONENT_DIGITS, "0");
+  const mantissaText = mantissa.toFixed(SCIENTIFIC_MANTISSA_DIGITS - 1);
 
-  return `${negative ? "-" : ""}${mantissaText}${exponentSign}${exponentText}`;
+  return {
+    mantissa: `${negative ? "-" : ""}${mantissaText}`,
+    exponentSign: exponent < 0 ? "-" : " ",
+    exponent: Math.abs(exponent)
+      .toString()
+      .padStart(SCIENTIFIC_EXPONENT_DIGITS, "0"),
+  };
+}
+
+function formatScientific(value: number): string {
+  const { mantissa, exponentSign, exponent } =
+    getLcdScientificDisplayParts(value);
+  return `${mantissa}${exponentSign}${exponent}`;
 }
 
 export function shouldUseScientificNotation(
@@ -200,11 +218,49 @@ export function formatFullMantissa(value: number): string {
   return digits.padEnd(DISPLAY_DIGIT_COUNT, "0");
 }
 
+/**
+ * Split mantissa / exponent for LCD overlay layout (EEX entry and committed SCI).
+ * Returns null for fixed notation and in-progress mantissa-only entry.
+ */
+export function getLcdScientificLayout(
+  input: LcdDisplayInput,
+): LcdScientificEntryParts | null {
+  if (input.isEntering) {
+    if (input.isEnteringExponent) {
+      return getLcdScientificEntryParts(
+        input.inputBuffer,
+        input.exponentBuffer ?? "",
+        input.exponentNegative ?? false,
+      );
+    }
+
+    return null;
+  }
+
+  if (!Number.isFinite(input.value)) {
+    return null;
+  }
+
+  const decimals = clampDecimalPlaces(
+    input.decimalPlaces ?? DEFAULT_DISPLAY_DECIMALS,
+  );
+
+  if (
+    input.displayFormat === "sci" ||
+    shouldUseScientificNotation(input.value, decimals)
+  ) {
+    return getLcdScientificDisplayParts(input.value);
+  }
+
+  return null;
+}
+
 export function formatLcdDisplay({
   value,
   isEntering,
   inputBuffer,
   decimalPlaces = DEFAULT_DISPLAY_DECIMALS,
+  displayFormat = "fix",
   isEnteringExponent = false,
   exponentBuffer = "",
   exponentNegative = false,
@@ -227,7 +283,7 @@ export function formatLcdDisplay({
     return " Error ";
   }
 
-  if (shouldUseScientificNotation(value, decimals)) {
+  if (displayFormat === "sci" || shouldUseScientificNotation(value, decimals)) {
     return formatScientific(value);
   }
 

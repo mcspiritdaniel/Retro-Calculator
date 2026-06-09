@@ -48,13 +48,18 @@ function RegisterSection({
   );
 }
 
-function formatRegisterValue(value: number, decimalPlaces: number): string {
-  return formatLogStackValue(value, decimalPlaces);
+function formatRegisterValue(
+  value: number,
+  decimalPlaces: number,
+  displayFormat: "fix" | "sci",
+): string {
+  return formatLogStackValue(value, decimalPlaces, displayFormat);
 }
 
 export default function RegistersPanel({ snapshot }: RegistersPanelProps) {
   const { stack, financial } = snapshot;
   const decimalPlaces = snapshot.decimalPlaces;
+  const displayFormat = snapshot.displayFormat;
   const cashFlowCount = snapshot.cashFlows.length;
   const memoryPrefix = snapshot.memoryPrefix
     ? snapshot.memoryPrefix.toUpperCase()
@@ -79,19 +84,19 @@ export default function RegistersPanel({ snapshot }: RegistersPanelProps) {
           <RegisterSection title="Stack">
             <RegisterRow
               label="T"
-              value={formatRegisterValue(stack.t, decimalPlaces)}
+              value={formatRegisterValue(stack.t, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="Z"
-              value={formatRegisterValue(stack.z, decimalPlaces)}
+              value={formatRegisterValue(stack.z, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="Y"
-              value={formatRegisterValue(stack.y, decimalPlaces)}
+              value={formatRegisterValue(stack.y, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="X"
-              value={formatRegisterValue(stack.x, decimalPlaces)}
+              value={formatRegisterValue(stack.x, decimalPlaces, displayFormat)}
               active
             />
           </RegisterSection>
@@ -99,30 +104,34 @@ export default function RegistersPanel({ snapshot }: RegistersPanelProps) {
           <RegisterSection title="TVM">
             <RegisterRow
               label="n"
-              value={formatRegisterValue(financial.n, decimalPlaces)}
+              value={formatRegisterValue(financial.n, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="i"
-              value={formatRegisterValue(financial.i, decimalPlaces)}
+              value={formatRegisterValue(financial.i, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="PV"
-              value={formatRegisterValue(financial.pv, decimalPlaces)}
+              value={formatRegisterValue(financial.pv, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="PMT"
-              value={formatRegisterValue(financial.pmt, decimalPlaces)}
+              value={formatRegisterValue(financial.pmt, decimalPlaces, displayFormat)}
             />
             <RegisterRow
               label="FV"
-              value={formatRegisterValue(financial.fv, decimalPlaces)}
+              value={formatRegisterValue(financial.fv, decimalPlaces, displayFormat)}
             />
           </RegisterSection>
 
           <RegisterSection title="Mode">
             <RegisterRow
               label="Display"
-              value={`FIX ${snapshot.decimalPlaces}`}
+              value={
+                snapshot.displayFormat === "sci"
+                  ? "SCI"
+                  : `FIX ${snapshot.decimalPlaces}`
+              }
             />
             <RegisterRow
               label="Timing"

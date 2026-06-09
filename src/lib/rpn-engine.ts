@@ -25,7 +25,13 @@ import {
   type DateFormat,
 } from "./calendar";
 import { computeIrr, computeNpvFromRegisters } from "./cash-flow";
-import { DEFAULT_DISPLAY_DECIMALS, formatFullMantissa, roundToDisplayDecimalPlaces, SCIENTIFIC_EXPONENT_DIGITS } from "./lcd-format";
+import {
+  DEFAULT_DISPLAY_DECIMALS,
+  formatFullMantissa,
+  roundToDisplayDecimalPlaces,
+  SCIENTIFIC_EXPONENT_DIGITS,
+  type LcdDisplayFormat,
+} from "./lcd-format";
 import {
   accumulatePair,
   applyStatisticsRegisterValue,
@@ -75,6 +81,7 @@ export type RpnEngineSnapshot = {
   fShift: boolean;
   gShift: boolean;
   decimalPlaces: number;
+  displayFormat: LcdDisplayFormat;
   financial: FinancialRegisters;
   cashFlows: number[];
   cashFlowCounts: number[];
@@ -153,6 +160,9 @@ export class RpnEngine {
 
   /** Fixed decimal places for display (f + digit on the faceplate). */
   decimalPlaces = DEFAULT_DISPLAY_DECIMALS;
+
+  /** FIX (default) or SCI (f + .) display format. */
+  displayFormat: LcdDisplayFormat = "fix";
 
   /**
    * When true, the next number entry will auto-lift the stack before accepting digits.
@@ -308,6 +318,7 @@ export class RpnEngine {
       fShift: this.fShift,
       gShift: this.gShift,
       decimalPlaces: this.decimalPlaces,
+      displayFormat: this.displayFormat,
       financial: { ...this.financial },
       cashFlows: [...this.cashFlows],
       cashFlowCounts: [...this.cashFlowCounts],
@@ -332,6 +343,7 @@ export class RpnEngine {
     this.fShift = false;
     this.gShift = false;
     this.decimalPlaces = DEFAULT_DISPLAY_DECIMALS;
+    this.displayFormat = "fix";
     this.stackLiftEnabled = false;
     this.financial = { n: 0, i: 0, pv: 0, pmt: 0, fv: 0 };
     this.cashFlows = [];
@@ -630,6 +642,7 @@ export class RpnEngine {
 
       this.clearMemoryPrefix();
       this.decimalPlaces = parseInt(digit, 10);
+      this.displayFormat = "fix";
       this.fShift = false;
       return;
     }
@@ -661,6 +674,11 @@ export class RpnEngine {
 
     if (this.gShift) {
       this.recallSampleStdDevOfX();
+      return;
+    }
+
+    if (this.fShift) {
+      this.setScientificDisplayFormat();
       return;
     }
 
@@ -1109,6 +1127,15 @@ export class RpnEngine {
     this.isEnteringExponent = false;
     this.exponentBuffer = "";
     this.exponentNegative = false;
+  }
+
+  /** f + . — SCI display format (scientific notation for all values). */
+  private setScientificDisplayFormat(): void {
+    this.endEntry();
+    this.clearMemoryPrefix();
+    this.displayFormat = "sci";
+    this.fShift = false;
+    this.stackLiftEnabled = true;
   }
 
   private clearCalendarResult(): void {
