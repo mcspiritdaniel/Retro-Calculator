@@ -1023,7 +1023,11 @@ export default function RetroCalculator() {
           <h1 className="text-sm font-semibold tracking-wide text-[#222]">
             RPN Financial Calculator
           </h1>
-          <p className="mt-0.5 text-xs text-[#888]">Dan McSpirit</p>
+          <p className="mt-0.5 text-xs text-[#888]">
+            <a href="https://danmcspirit.com" target="_blank" rel="noopener noreferrer">
+              Dan McSpirit ↗
+            </a>
+          </p>
         </header>
       ) : null}
       <div
